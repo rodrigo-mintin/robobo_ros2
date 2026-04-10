@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+
+<package format="3">
+  <name>robobo_ros2</name>
+  <version>0.0.0</version>
+
+  <description>Robobo ROS2 interface node</description>
+
+  <maintainer email="rodrigo.martin@mintforpeople.com">eden</maintainer>
+  <license>TODO</license>
+
+  <depend>geometry_msgs</depend>
+
+  <!-- Build system -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!-- Python execution -->
+  <exec_depend>python3</exec_depend>
+
+  <!-- ROS 2 Python runtime -->
+  <exec_depend>rclpy</exec_depend>
+
+  <!-- Message types -->
+  <exec_depend>std_msgs</exec_depend>
+
+  <!-- Required for services (.srv) -->
+  <build_depend>rosidl_default_generators</build_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <!-- Mark this package as containing interfaces -->
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <!-- Testing -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+
+  <exec_depend>robobo_ros2_interfaces</exec_depend>
+
+</package>
