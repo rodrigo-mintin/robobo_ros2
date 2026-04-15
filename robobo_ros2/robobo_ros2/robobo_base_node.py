@@ -1,15 +1,23 @@
+import time
+import threading
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Int32MultiArray, Int32, Float32
 
+from rclpy.action import ActionServer
+from robobo_ros2_interfaces.action import (
+    MoveWheelsDegrees
+)
+
 from robobo_ros2_interfaces.srv import SetLed
 from robobo_ros2_interfaces.srv import SetPan, SetTilt
-
 from robobo_ros2_interfaces.srv import (
     MoveWheels,
     StopWheels,
     MoveWheelsTime
 )
+
+from rclpy.action import CancelResponse
 
 from robobopy.Robobo import Robobo
 from robobopy.utils.IR import IR
@@ -37,6 +45,9 @@ class RoboboBaseNode(Node):
         # --- Connect to Robobo ---
         self.rob = Robobo(ip, robot_id)
         self.rob.connect()
+
+        self.rob.moveWheelsByTime(10,10,0.5,wait=True)
+        self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
 
         # --- IR sensors ---
         self.ir_order = [
@@ -134,6 +145,14 @@ class RoboboBaseNode(Node):
             MoveWheelsTime,
             f'{self._namespace}/move_wheels_time',
             self.move_wheels_time_callback
+        )
+
+        # --- Actions ---
+        self.move_wheels_degrees_action = ActionServer(
+            self,
+            MoveWheelsDegrees,
+            f'{self._namespace}/move_wheels_degrees',
+            self.execute_move_wheels_degrees
         )
 
         # --- Timer ---
@@ -285,8 +304,8 @@ class RoboboBaseNode(Node):
     def move_wheels_callback(self, request, response):
         try:
             self.rob.moveWheels(
-                request.left_speed,
-                request.right_speed
+                request.right_speed,
+                request.left_speed
             )
             response.success = True
 
@@ -310,8 +329,8 @@ class RoboboBaseNode(Node):
     def move_wheels_time_callback(self, request, response):
         try:
             self.rob.moveWheelsByTime(
-                request.left_speed,
                 request.right_speed,
+                request.left_speed,
                 request.time,
                 False  # non-blocking
             )
@@ -322,6 +341,101 @@ class RoboboBaseNode(Node):
             response.success = False
 
         return response
+    
+    # =========================
+    # Wheels Actions
+    # =========================
+    def _move_wheels_deg_blocking(self, wheel, degrees, speed):
+        try:
+            self.rob.moveWheelsByDegrees(
+                wheel,
+                int(degrees),
+                int(speed)
+            )
+        except Exception as e:
+            self.get_logger().error(f'Blocking movement failed: {e}')
+    
+    def _move_wheels_time_blocking(self, right_speed, left_speed, duration):
+        try:
+            self.rob.moveWheelsByTime(
+                right_speed,
+                left_speed,
+                duration,
+                wait=True
+            )
+        except Exception as e:
+            self.get_logger().error(f'Time movement failed: {e}')
+
+    async def execute_move_wheels_degrees(self, goal_handle):
+        request = goal_handle.request
+
+        wheel = None
+        try:
+            wheel = Wheels[request.wheel]
+        except KeyError:
+            pass
+        if wheel is None:
+            goal_handle.abort()
+            return MoveWheelsDegrees.Result(success=False)
+
+        speed = request.speed
+        degrees = request.degrees
+
+        try:
+            # ----------------------
+            # Get initial position
+            # ----------------------
+            start_pos = self.rob.readWheelPosition(wheel)
+
+            if not isinstance(start_pos, (int, float)):
+                goal_handle.abort()
+                return MoveWheelsDegrees.Result(success=False)
+
+            target = start_pos + degrees
+
+            # ----------------------
+            # Start blocking call in thread
+            # ----------------------
+            movement_thread = threading.Thread(
+                target=self._move_wheels_deg_blocking,
+                args=(wheel, degrees, speed),
+                daemon=True
+            )
+            movement_thread.start()
+
+            feedback_msg = MoveWheelsDegrees.Feedback()
+
+            # ----------------------
+            # Monitor loop
+            # ----------------------
+            while movement_thread.is_alive():
+                if goal_handle.is_cancel_requested:
+                    self.rob.stopWheels()
+                    goal_handle.canceled()
+                    return MoveWheelsDegrees.Result(success=False)
+
+                current = self.rob.readWheelPosition(wheel)
+
+                if isinstance(current, (int, float)):
+                    progress = abs(current - start_pos) / max(abs(degrees), 1e-5)
+
+                    feedback_msg.progress = float(progress)
+                    feedback_msg.current_position = float(current)
+
+                    goal_handle.publish_feedback(feedback_msg)
+
+                time.sleep(0.05)
+
+            # ----------------------
+            # Movement finished
+            # ----------------------
+            goal_handle.succeed()
+            return MoveWheelsDegrees.Result(success=True)
+
+        except Exception as e:
+            self.get_logger().error(f'Action failed: {e}')
+            goal_handle.abort()
+            return MoveWheelsDegrees.Result(success=False)
 
     # =========================
     # Shutdown

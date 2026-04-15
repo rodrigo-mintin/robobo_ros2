@@ -28,6 +28,8 @@
   <!-- Required for services (.srv) -->
   <build_depend>rosidl_default_generators</build_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
+  <build_depend>action_msgs</build_depend>
+  <exec_depend>action_msgs</exec_depend>
 
   <!-- Mark this package as containing interfaces -->
   <member_of_group>rosidl_interface_packages</member_of_group>
