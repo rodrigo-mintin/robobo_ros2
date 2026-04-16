@@ -39,17 +39,20 @@ class RoboboBaseNode(Node):
         self.declare_parameter('ip', '127.0.0.1')
         self.declare_parameter('robot_id', 0)
 
-        ip = self.get_parameter('ip').value
-        robot_id = self.get_parameter('robot_id').value
+        self.declare_parameter('robot_name', 'robot_0')
+        self.declare_parameter('robot_id', 0)
+        self.declare_parameter('ip', '127.0.0.1')
 
         # --- Namespace ---
-        self._namespace = f'/robobo/robot_{robot_id}/base'
+        self._namespace = f'/robobo/robot_{robot_name}/base'
         self.get_logger().info(f"Namespace: {self._namespace}")
 
         # --- Connect to Robobo ---
-        self.rob = Robobo(ip, robot_id)
-        self.rob.connect()
+        connection_type = self.get_parameter('connection_type').value
 
+        robot_id = self.get_parameter('robot_id').value
+        self.rob = Robobo(ip, robot_id=robot_id)
+        
         self.rob.moveWheelsByTime(10,10,0.5,wait=True)
         self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
 
