@@ -6,15 +6,18 @@ from std_msgs.msg import Int32MultiArray, Int32, Float32
 
 from rclpy.action import ActionServer
 from robobo_ros2_interfaces.action import (
-    MoveWheelsDegrees
+    MoveWheelsDegrees,
+    MoveWheelsTime as MoveWheelsTimeAction,
+    MovePan as MovePanAction,
+    MoveTilt as MoveTiltAction
 )
 
 from robobo_ros2_interfaces.srv import SetLed
-from robobo_ros2_interfaces.srv import SetPan, SetTilt
+from robobo_ros2_interfaces.srv import MovePan as MovePanService, MoveTilt as MoveTiltService
 from robobo_ros2_interfaces.srv import (
     MoveWheels,
     StopWheels,
-    MoveWheelsTime
+    MoveWheelsTime as MoveWheelsTimeService
 )
 
 from rclpy.action import CancelResponse
@@ -117,16 +120,16 @@ class RoboboBaseNode(Node):
             self.handle_set_led
         )
 
-        self.set_pan_srv = self.create_service(
-            SetPan,
-            f'{self._namespace}/set_pan',
-            self.set_pan_callback
+        self.move_pan_srv = self.create_service(
+            MovePanService,
+            f'{self._namespace}/move_pan',
+            self.move_pan_callback
         )
 
-        self.set_tilt_srv = self.create_service(
-            SetTilt,
-            f'{self._namespace}/set_tilt',
-            self.set_tilt_callback
+        self.move_tilt_srv = self.create_service(
+            MoveTiltService,
+            f'{self._namespace}/move_tilt',
+            self.move_tilt_callback
         )
 
         self.move_wheels_srv = self.create_service(
@@ -142,7 +145,7 @@ class RoboboBaseNode(Node):
         )
 
         self.move_wheels_time_srv = self.create_service(
-            MoveWheelsTime,
+            MoveWheelsTimeService,
             f'{self._namespace}/move_wheels_time',
             self.move_wheels_time_callback
         )
@@ -153,6 +156,27 @@ class RoboboBaseNode(Node):
             MoveWheelsDegrees,
             f'{self._namespace}/move_wheels_degrees',
             self.execute_move_wheels_degrees
+        )
+
+        self.move_wheels_time_action = ActionServer(
+            self,
+            MoveWheelsTimeAction,
+            f'{self._namespace}/move_wheels_time',
+            self.execute_move_wheels_time
+        )
+
+        self.move_pan_action = ActionServer(
+            self,
+            MovePanAction,
+            f'{self._namespace}/move_pan',
+            self.execute_move_pan
+        )
+
+        self.move_tilt_action = ActionServer(
+            self,
+            MoveTiltAction,
+            f'{self._namespace}/move_tilt',
+            self.execute_move_tilt
         )
 
         # --- Timer ---
@@ -258,7 +282,7 @@ class RoboboBaseNode(Node):
     # =========================
     # Pan/Tilt Service
     # =========================
-    def set_pan_callback(self, request, response):
+    def move_pan_callback(self, request, response):
         if not self.rob:
             self.get_logger().error("Robot not connected")
             response.success = False
@@ -273,11 +297,11 @@ class RoboboBaseNode(Node):
             response.success = True
 
         except Exception as e:
-            self.get_logger().error(f"SetPan failed: {e}")
+            self.get_logger().error(f"MovePan failed: {e}")
             response.success = False
         return response
 
-    def set_tilt_callback(self, request, response):
+    def move_tilt_callback(self, request, response):
         if not self.rob:
             self.get_logger().error("Robot not connected")
             response.success = False
@@ -293,7 +317,7 @@ class RoboboBaseNode(Node):
             response.success = True
 
         except Exception as e:
-            self.get_logger().error(f"SetTilt failed: {e}")
+            self.get_logger().error(f"MoveTilt failed: {e}")
             response.success = False
 
         return response
@@ -410,7 +434,7 @@ class RoboboBaseNode(Node):
             # ----------------------
             while movement_thread.is_alive():
                 if goal_handle.is_cancel_requested:
-                    self.rob.stopWheels()
+                    self.rob.stopMotors()
                     goal_handle.canceled()
                     return MoveWheelsDegrees.Result(success=False)
 
@@ -436,6 +460,181 @@ class RoboboBaseNode(Node):
             self.get_logger().error(f'Action failed: {e}')
             goal_handle.abort()
             return MoveWheelsDegrees.Result(success=False)
+
+    async def execute_move_wheels_time(self, goal_handle):
+
+        request = goal_handle.request
+
+        right_speed = request.right_speed
+        left_speed = request.left_speed
+        duration = request.time
+
+        try:
+            # Safety: stop previous motion
+            self.rob.stopMotors()
+            time.sleep(0.05)
+
+            # Start thread
+            thread = threading.Thread(
+                target=self._move_wheels_time_blocking,
+                args=(right_speed, left_speed, duration),
+                daemon=True
+            )
+            thread.start()
+
+            feedback_msg = MoveWheelsTimeAction.Feedback()
+
+            start_time = time.time()
+
+            # Monitor loop
+            while thread.is_alive():
+                if goal_handle.is_cancel_requested:
+                    self.rob.stopMotors()
+                    goal_handle.canceled()
+                    return MoveWheelsTimeAction.Result(success=False)
+
+                elapsed = time.time() - start_time
+                progress = min(elapsed / max(duration, 1e-5), 1.0)
+
+                feedback_msg.time_elapsed = float(elapsed)
+                feedback_msg.progress = float(progress)
+
+                goal_handle.publish_feedback(feedback_msg)
+
+                time.sleep(0.05)
+
+            goal_handle.succeed()
+            return MoveWheelsTimeAction.Result(success=True)
+
+        except Exception as e:
+            self.get_logger().error(f'Action failed: {e}')
+            goal_handle.abort()
+            return MoveWheelsTimeAction.Result(success=False)
+    
+    # =========================
+    # Pan/Tilt Actions
+    # =========================
+    def _move_pan_blocking(self, angle, speed):
+        try:
+            self.rob.movePanTo(angle, speed, True)
+        except Exception as e:
+            self.get_logger().error(f'Pan movement failed: {e}')
+    
+    def _move_tilt_blocking(self, angle, speed):
+        try:
+            self.rob.moveTiltTo(angle, speed, True)
+        except Exception as e:
+            self.get_logger().error(f'Tilt movement failed: {e}')
+
+    def compute_progress(self, start, current, target):
+        total = target - start
+
+        if abs(total) < 1e-5:
+            return 1.0
+
+        progress = (current - start) / total
+        return max(0.0, min(1.0, progress))
+
+    async def execute_move_pan(self, goal_handle):
+        request = goal_handle.request
+
+        target_angle = float(request.angle)
+        speed = float(request.speed)
+
+        try:
+            # Get starting position
+            start_angle = self.rob.readPanPosition()
+
+            thread = threading.Thread(
+                target=self._move_pan_blocking,
+                args=(target_angle, speed),
+                daemon=True
+            )
+            thread.start()
+
+            feedback_msg = MovePanAction.Feedback()
+
+            while thread.is_alive():
+                if goal_handle.is_cancel_requested:
+                    with self.rob_lock:
+                        self.rob.stopWheels()  # or stop pan if exists
+                    goal_handle.canceled()
+                    return MovePanAction.Result(success=False)
+
+                current_angle = self.rob.readPanPosition()
+
+                progress = self.compute_progress(start_angle, current_angle, target_angle)
+
+                feedback_msg.current_angle = float(current_angle)
+                feedback_msg.progress = float(progress)
+
+                goal_handle.publish_feedback(feedback_msg)
+
+                time.sleep(0.05)
+
+            # Final update
+            current_angle = self.rob.readPanPosition()
+
+            feedback_msg.current_angle = float(current_angle)
+            feedback_msg.progress = 1.0
+            goal_handle.publish_feedback(feedback_msg)
+
+            goal_handle.succeed()
+            return MovePanAction.Result(success=True)
+
+        except Exception as e:
+            self.get_logger().error(f'MovePan failed: {e}')
+            goal_handle.abort()
+            return MovePanAction.Result(success=False)
+    
+    async def execute_move_tilt(self, goal_handle):
+        request = goal_handle.request
+
+        target_angle = float(request.angle)
+        speed = float(request.speed)
+
+        try:
+            start_angle = self.rob.readTiltPosition()
+
+            thread = threading.Thread(
+                target=self._move_tilt_blocking,
+                args=(target_angle, speed),
+                daemon=True
+            )
+            thread.start()
+
+            feedback_msg = MoveTiltAction.Feedback()
+
+            while thread.is_alive():
+                if goal_handle.is_cancel_requested:
+                    with self.rob_lock:
+                        self.rob.stopWheels()  # replace if tilt stop exists
+                    goal_handle.canceled()
+                    return MoveTiltAction.Result(success=False)
+
+                current_angle = self.rob.readTiltPosition()
+
+                progress = self.compute_progress(start_angle, current_angle, target_angle)
+
+                feedback_msg.current_angle = float(current_angle)
+                feedback_msg.progress = float(progress)
+
+                goal_handle.publish_feedback(feedback_msg)
+
+                time.sleep(0.05)
+
+            current_angle = self.rob.readTiltPosition()
+
+            feedback_msg.current_angle = float(current_angle)
+            feedback_msg.progress = 1.0
+            goal_handle.publish_feedback(feedback_msg)
+
+            goal_handle.succeed()
+            return MoveTiltAction.Result(success=True)
+
+        except Exception as e:
+            goal_handle.abort()
+            return MoveTiltAction.Result(success=False)
 
     # =========================
     # Shutdown
