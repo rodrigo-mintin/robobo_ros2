@@ -14,6 +14,7 @@ from robobo_ros2_interfaces.action import (
 
 from robobo_ros2_interfaces.srv import SetLed
 from robobo_ros2_interfaces.srv import MovePan as MovePanService, MoveTilt as MoveTiltService
+from robobo_ros2_interfaces.srv import ResetWheelEncoders
 from robobo_ros2_interfaces.srv import (
     MoveWheels,
     StopWheels,
@@ -148,6 +149,12 @@ class RoboboBaseNode(Node):
             MoveWheelsTimeService,
             f'{self._namespace}/move_wheels_time',
             self.move_wheels_time_callback
+        )
+
+        self.reset_encoders_srv = self.create_service(
+            ResetWheelEncoders,
+            f'{self._namespace}/reset_wheel_encoders',
+            self.reset_wheel_encoders_callback
         )
 
         # --- Actions ---
@@ -364,6 +371,15 @@ class RoboboBaseNode(Node):
             self.get_logger().error(f'MoveWheelsTime failed: {e}')
             response.success = False
 
+        return response
+    
+    def reset_wheel_encoders_callback(self, request, response):
+        try:
+            self.rob.resetWheelEncoders()
+            response.success = True
+        except Exception as e:
+            self.get_logger().error(f'Failed to reset encoders: {e}')
+            response.success = False
         return response
     
     # =========================
