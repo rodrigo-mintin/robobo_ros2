@@ -29,7 +29,6 @@ ros2 run robobo_ros2 robobo_base_node --ros-args -p ip:=IP_ROBOT -p robot_id:=ID
 
 ### What's next?
 
-- Pending long blocking actions for ROB base methods (MoveWheelsByTime (blocking), PAN/TILT blocking methods)
 - Smartphone sensors (IMU is particularly interesting)
-- There aren't smartphone actuators but some QoL services will be implemented to interact with camera sensors
+- There aren't many smartphone actuators but some QoL services will be implemented to interact with camera sensors
 
