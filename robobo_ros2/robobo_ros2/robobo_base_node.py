@@ -6,7 +6,6 @@ from std_msgs.msg import Int32MultiArray, Int32, Float32
 
 from rclpy.action import ActionServer
 from robobo_ros2_interfaces.action import (
-    MoveWheelsDegrees,
     MoveWheelsTime as MoveWheelsTimeAction,
     MovePan as MovePanAction,
     MoveTilt as MoveTiltAction
@@ -17,6 +16,7 @@ from robobo_ros2_interfaces.srv import MovePan as MovePanService, MoveTilt as Mo
 from robobo_ros2_interfaces.srv import ResetWheelEncoders
 from robobo_ros2_interfaces.srv import (
     MoveWheels,
+    MoveWheelsDegrees,
     StopWheels,
     MoveWheelsTime as MoveWheelsTimeService
 )
@@ -40,6 +40,7 @@ class RoboboBaseNode(Node):
         self.declare_parameter('robot_id', 0)
 
         self.declare_parameter('robot_name', 'robot_0')
+        self.declare_parameter('connection_type', 'sim')  # 'sim' or 'real'
         self.declare_parameter('robot_id', 0)
         self.declare_parameter('ip', '127.0.0.1')
 
@@ -50,9 +51,17 @@ class RoboboBaseNode(Node):
         # --- Connect to Robobo ---
         connection_type = self.get_parameter('connection_type').value
 
-        robot_id = self.get_parameter('robot_id').value
-        self.rob = Robobo(ip, robot_id=robot_id)
-        
+        if connection_type == 'sim':
+            robot_id = self.get_parameter('robot_id').value
+            self.rob = Robobo(ip, robot_id=robot_id)
+
+        elif connection_type == 'real':
+            ip = self.get_parameter('ip').value
+            self.rob = Robobo(ip)
+
+        else:
+            raise ValueError("Invalid connection_type")
+
         self.rob.moveWheelsByTime(10,10,0.5,wait=True)
         self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
 
@@ -154,6 +163,12 @@ class RoboboBaseNode(Node):
             self.move_wheels_time_callback
         )
 
+        self.move_wheels_degrees_srv = self.create_service(
+            MoveWheels,
+            f'{self._namespace}/move_wheels_degrees',
+            self.move_wheels_degrees_callback
+        )
+
         self.reset_encoders_srv = self.create_service(
             ResetWheelEncoders,
             f'{self._namespace}/reset_wheel_encoders',
@@ -161,13 +176,6 @@ class RoboboBaseNode(Node):
         )
 
         # --- Actions ---
-        self.move_wheels_degrees_action = ActionServer(
-            self,
-            MoveWheelsDegrees,
-            f'{self._namespace}/move_wheels_degrees',
-            self.execute_move_wheels_degrees
-        )
-
         self.move_wheels_time_action = ActionServer(
             self,
             MoveWheelsTimeAction,
@@ -302,7 +310,7 @@ class RoboboBaseNode(Node):
             speed = request.speed if request.speed > 0 else 50
 
             # Non-blocking call
-            self.rob.movePanTo(angle, speed, False)
+            self.rob.movePanTo(angle, speed, True)
 
             response.success = True
 
@@ -322,7 +330,7 @@ class RoboboBaseNode(Node):
             speed = request.speed if request.speed > 0 else 50
 
             # Non-blocking call
-            self.rob.moveTiltTo(angle, speed, False)
+            self.rob.moveTiltTo(angle, speed, True)
 
             response.success = True
 
@@ -348,6 +356,21 @@ class RoboboBaseNode(Node):
             response.success = False
 
         return response
+    
+    def move_wheels_degrees_callback(self, request, response):
+        try:
+            self.rob.moveWheelsByDegrees(
+                Wheels[request.wheel],
+                request.degrees,
+                request.speed
+            )
+            response.success = True
+
+        except Exception as e:
+            self.get_logger().error(f'MoveWheelsDegrees failed: {e}')
+            response.success = False
+
+        return response
 
     def stop_wheels_callback(self, request, response):
         try:
@@ -366,7 +389,7 @@ class RoboboBaseNode(Node):
                 request.right_speed,
                 request.left_speed,
                 request.time,
-                False  # non-blocking
+                True
             )
             response.success = True
 
@@ -388,97 +411,16 @@ class RoboboBaseNode(Node):
     # =========================
     # Wheels Actions
     # =========================
-    def _move_wheels_deg_blocking(self, wheel, degrees, speed):
-        try:
-            self.rob.moveWheelsByDegrees(
-                wheel,
-                int(degrees),
-                int(speed)
-            )
-        except Exception as e:
-            self.get_logger().error(f'Blocking movement failed: {e}')
-    
-    def _move_wheels_time_blocking(self, right_speed, left_speed, duration):
+    def _move_wheels_time(self, right_speed, left_speed, duration):
         try:
             self.rob.moveWheelsByTime(
                 right_speed,
                 left_speed,
                 duration,
-                wait=True
+                wait=False
             )
         except Exception as e:
             self.get_logger().error(f'Time movement failed: {e}')
-
-    async def execute_move_wheels_degrees(self, goal_handle):
-        request = goal_handle.request
-
-        wheel = None
-        try:
-            wheel = Wheels[request.wheel]
-        except KeyError:
-            pass
-        if wheel is None:
-            goal_handle.abort()
-            return MoveWheelsDegrees.Result(success=False)
-
-        speed = request.speed
-        degrees = request.degrees
-
-        try:
-            # ----------------------
-            # Get initial position
-            # ----------------------
-            start_pos = self.rob.readWheelPosition(wheel)
-
-            if not isinstance(start_pos, (int, float)):
-                goal_handle.abort()
-                return MoveWheelsDegrees.Result(success=False)
-
-            target = start_pos + degrees
-
-            # ----------------------
-            # Start blocking call in thread
-            # ----------------------
-            movement_thread = threading.Thread(
-                target=self._move_wheels_deg_blocking,
-                args=(wheel, degrees, speed),
-                daemon=True
-            )
-            movement_thread.start()
-
-            feedback_msg = MoveWheelsDegrees.Feedback()
-
-            # ----------------------
-            # Monitor loop
-            # ----------------------
-            while movement_thread.is_alive():
-                if goal_handle.is_cancel_requested:
-                    self.rob.stopMotors()
-                    goal_handle.canceled()
-                    return MoveWheelsDegrees.Result(success=False)
-
-                current = self.rob.readWheelPosition(wheel)
-
-                if isinstance(current, (int, float)):
-                    progress = abs(current - start_pos) / max(abs(degrees), 1e-5)
-
-                    feedback_msg.progress = float(progress)
-                    feedback_msg.current_position = float(current)
-
-                    goal_handle.publish_feedback(feedback_msg)
-
-                time.sleep(0.05)
-
-            # ----------------------
-            # Movement finished
-            # ----------------------
-            goal_handle.succeed()
-            return MoveWheelsDegrees.Result(success=True)
-
-        except Exception as e:
-            self.get_logger().error(f'Action failed: {e}')
-            goal_handle.abort()
-            return MoveWheelsDegrees.Result(success=False)
 
     async def execute_move_wheels_time(self, goal_handle):
 
@@ -533,15 +475,15 @@ class RoboboBaseNode(Node):
     # =========================
     # Pan/Tilt Actions
     # =========================
-    def _move_pan_blocking(self, angle, speed):
+    def _move_pan(self, angle, speed):
         try:
-            self.rob.movePanTo(angle, speed, True)
+            self.rob.movePanTo(angle, speed, False)
         except Exception as e:
             self.get_logger().error(f'Pan movement failed: {e}')
     
-    def _move_tilt_blocking(self, angle, speed):
+    def _move_tilt(self, angle, speed):
         try:
-            self.rob.moveTiltTo(angle, speed, True)
+            self.rob.moveTiltTo(angle, speed, False)
         except Exception as e:
             self.get_logger().error(f'Tilt movement failed: {e}')
 
