@@ -1,0 +1,5 @@
+string wheel
+float32 speed
+float32 degrees
+---
+bool success
