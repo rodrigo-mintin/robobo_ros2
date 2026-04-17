@@ -39,28 +39,19 @@ class RoboboBaseNode(Node):
         self.declare_parameter('ip', '127.0.0.1')
         self.declare_parameter('robot_id', 0)
 
-        self.declare_parameter('robot_name', 'robot_0')
+        self.declare_parameter('robot_name', '0')
         self.declare_parameter('connection_type', 'sim')  # 'sim' or 'real'
-        self.declare_parameter('robot_id', 0)
-        self.declare_parameter('ip', '127.0.0.1')
 
         # --- Namespace ---
+        robot_name = self.get_parameter('robot_name').value
         self._namespace = f'/robobo/robot_{robot_name}/base'
         self.get_logger().info(f"Namespace: {self._namespace}")
 
         # --- Connect to Robobo ---
-        connection_type = self.get_parameter('connection_type').value
-
-        if connection_type == 'sim':
-            robot_id = self.get_parameter('robot_id').value
-            self.rob = Robobo(ip, robot_id=robot_id)
-
-        elif connection_type == 'real':
-            ip = self.get_parameter('ip').value
-            self.rob = Robobo(ip)
-
-        else:
-            raise ValueError("Invalid connection_type")
+        robot_id = self.get_parameter('robot_id').value
+        ip = self.get_parameter('ip').value
+        self.rob = Robobo(ip, robot_id=robot_id)
+        self.rob.connect()
 
         self.rob.moveWheelsByTime(10,10,0.5,wait=True)
         self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
