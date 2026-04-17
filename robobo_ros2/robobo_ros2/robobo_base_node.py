@@ -428,7 +428,7 @@ class RoboboBaseNode(Node):
 
             # Start thread
             thread = threading.Thread(
-                target=self._move_wheels_time_blocking,
+                target=self._move_wheels_time,
                 args=(right_speed, left_speed, duration),
                 daemon=True
             )
@@ -498,7 +498,7 @@ class RoboboBaseNode(Node):
             start_angle = self.rob.readPanPosition()
 
             thread = threading.Thread(
-                target=self._move_pan_blocking,
+                target=self._move_pan,
                 args=(target_angle, speed),
                 daemon=True
             )
@@ -549,7 +549,7 @@ class RoboboBaseNode(Node):
             start_angle = self.rob.readTiltPosition()
 
             thread = threading.Thread(
-                target=self._move_tilt_blocking,
+                target=self._move_tilt,
                 args=(target_angle, speed),
                 daemon=True
             )
