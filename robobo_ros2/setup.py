@@ -44,7 +44,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'robobo_base_node = robobo_ros2.robobo_base_node:main',
+            'robobo_container = robobo_ros2.robobo_container:main',
         ],
     },
 )
