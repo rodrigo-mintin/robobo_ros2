@@ -1,0 +1,7 @@
+robobo_container:
+  ros__parameters:
+    robot_name: "0"
+    ip: 127.0.0.1
+
+    modules:
+      - orientation
