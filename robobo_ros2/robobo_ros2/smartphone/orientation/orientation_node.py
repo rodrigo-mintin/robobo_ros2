@@ -34,7 +34,7 @@ class OrientationNode(Node):
             # Get orientation from robot
             # -------------------------
             # Adjust this depending on robobopy API
-            orientation = self.rob.readOrientation()
+            orientation = self.rob.readOrientationSensor()
 
             # Example expected:
             # {

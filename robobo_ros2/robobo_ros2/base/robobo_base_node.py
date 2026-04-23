@@ -34,6 +34,9 @@ class RoboboBaseNode(Node):
         super().__init__('robobo_base_node')
 
         self.rob = rob
+        self.robot_name = robot_name
+
+        self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
         self.rob.moveWheelsByTime(10,10,0.5,wait=True)
         self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)

@@ -1,7 +1,7 @@
 robobo_container:
   ros__parameters:
     robot_name: "0"
-    ip: localhost
+    ip: 192.168.1.54
 
     modules:
       - orientation
