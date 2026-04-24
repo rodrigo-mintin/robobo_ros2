@@ -10,6 +10,10 @@ from robobo_ros2.smartphone.imu_node import IMUNode
 from robobo_ros2.smartphone.battery_node import BatteryNode
 from robobo_ros2.smartphone.light_node import LightNode
 
+from robobo_ros2.smartphone.audio.audio_node import AudioNode
+from robobo_ros2.smartphone.audio.speech_node import SpeechNode
+from robobo_ros2.smartphone.emotion_node import EmotionNode
+
 
 class RoboboContainer(Node):
 
@@ -54,12 +58,19 @@ class RoboboContainer(Node):
         self.nodes.append(BatteryNode(self.rob, self.robot_name))
 
         if 'imu' in self.modules:
-            self.get_logger().info('Loading IMUNode')
             self.nodes.append(IMUNode(self.rob, self.robot_name))
         
         if 'brightness' in self.modules:
-            self.get_logger().info('Loading LightNode')
             self.nodes.append(LightNode(self.rob, self.robot_name))
+
+        if 'audio' in self.modules:
+            self.nodes.append(AudioNode(self.rob, self.robot_name))
+
+        if 'speech' in self.modules:
+            self.nodes.append(SpeechNode(self.rob, self.robot_name))
+
+        if 'emotion' in self.modules:
+            self.nodes.append(EmotionNode(self.rob, self.robot_name))
 
 
 def main(args=None):

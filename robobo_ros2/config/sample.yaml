@@ -1,9 +1,10 @@
 robobo_container:
   ros__parameters:
     robot_name: "0"
-    ip: 192.168.1.54
+    ip: localhost
 
     modules:
      - imu
     # - camera
      - brightness
+     - speech
