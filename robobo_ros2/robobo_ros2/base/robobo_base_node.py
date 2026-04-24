@@ -38,9 +38,6 @@ class RoboboBaseNode(Node):
 
         self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
-        self.rob.moveWheelsByTime(10,10,0.5,wait=True)
-        self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
-
         # --- IR sensors ---
         self.ir_order = [
             IR.FrontLL, IR.FrontL, IR.FrontC, IR.FrontR, IR.FrontRR,

@@ -4,5 +4,6 @@ robobo_container:
     ip: 192.168.1.54
 
     modules:
-      - orientation
+     - imu
     # - camera
+     - brightness

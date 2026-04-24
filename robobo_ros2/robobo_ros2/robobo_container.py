@@ -6,11 +6,9 @@ from robobopy.Robobo import Robobo
 
 # Import your nodes
 from robobo_ros2.base.robobo_base_node import RoboboBaseNode
-from robobo_ros2.smartphone.orientation.orientation_node import OrientationNode
-#from robobo_ros2.smartphone.camera.camera_node import CameraNode
-# from robobo_ros2.smartphone.qr.qr_node import QRNode
-# from robobo_ros2.smartphone.aruco.aruco_node import ArucoNode
-# from robobo_ros2.smartphone.voice.voice_node import VoiceNode
+from robobo_ros2.smartphone.imu_node import IMUNode
+from robobo_ros2.smartphone.battery_node import BatteryNode
+from robobo_ros2.smartphone.light_node import LightNode
 
 
 class RoboboContainer(Node):
@@ -53,14 +51,15 @@ class RoboboContainer(Node):
         self.base_node = RoboboBaseNode(self.rob, self.robot_name)
         self.nodes.append(self.base_node)
 
-        # Optional modules
-        if 'camera' in self.modules:
-            self.get_logger().info('Loading CameraNode')
-            self.nodes.append(CameraNode(self.rob, self.robot_name))
+        self.nodes.append(BatteryNode(self.rob, self.robot_name))
 
-        if 'orientation' in self.modules:
-            self.get_logger().info('Loading OrientationNode')
-            self.nodes.append(OrientationNode(self.rob, self.robot_name))
+        if 'imu' in self.modules:
+            self.get_logger().info('Loading IMUNode')
+            self.nodes.append(IMUNode(self.rob, self.robot_name))
+        
+        if 'brightness' in self.modules:
+            self.get_logger().info('Loading LightNode')
+            self.nodes.append(LightNode(self.rob, self.robot_name))
 
 
 def main(args=None):
