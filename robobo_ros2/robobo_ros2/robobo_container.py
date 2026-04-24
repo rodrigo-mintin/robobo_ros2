@@ -14,6 +14,9 @@ from robobo_ros2.smartphone.audio.audio_node import AudioNode
 from robobo_ros2.smartphone.audio.speech_node import SpeechNode
 from robobo_ros2.smartphone.emotion_node import EmotionNode
 
+from robobo_ros2.smartphone.vision.qr_node import QRNode
+from robobo_ros2.smartphone.vision.aruco_node import ArucoNode
+
 
 class RoboboContainer(Node):
 
@@ -71,6 +74,12 @@ class RoboboContainer(Node):
 
         if 'emotion' in self.modules:
             self.nodes.append(EmotionNode(self.rob, self.robot_name))
+        
+        if 'qr' in self.modules:
+            self.nodes.append(QRNode(self.rob, self.robot_name))
+        
+        if 'aruco' in self.modules:
+            self.nodes.append(ArucoNode(self.rob, self.robot_name))
 
 
 def main(args=None):

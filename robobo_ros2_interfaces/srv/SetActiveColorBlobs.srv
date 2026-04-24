@@ -1,0 +1,6 @@
+bool red
+bool green
+bool blue
+bool custom
+---
+bool success

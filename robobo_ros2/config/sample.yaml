@@ -5,6 +5,10 @@ robobo_container:
 
     modules:
      - imu
-    # - camera
      - brightness
      - speech
+     - audio
+     - emotion
+     - qr
+     - aruco
+     - blob
