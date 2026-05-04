@@ -17,6 +17,8 @@ from robobo_ros2.smartphone.emotion_node import EmotionNode
 from robobo_ros2.smartphone.vision.qr_node import QRNode
 from robobo_ros2.smartphone.vision.aruco_node import ArucoNode
 
+from robobo_ros2.smartphone.vision.camera_node import CameraNode
+
 
 class RoboboContainer(Node):
 
@@ -80,6 +82,9 @@ class RoboboContainer(Node):
         
         if 'aruco' in self.modules:
             self.nodes.append(ArucoNode(self.rob, self.robot_name))
+        
+        if 'camera' in self.modules:
+            self.nodes.append(CameraNode(self.rob, self.robot_name, self.ip))
 
 
 def main(args=None):

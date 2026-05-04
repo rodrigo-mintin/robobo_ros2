@@ -248,6 +248,8 @@ class RoboboBaseNode(Node):
     # LED Service
     # =========================
     def handle_set_led(self, request, response):
+        led_enum = getattr(LED, request.led)
+        color_enum = getattr(Color, request.color)
         try:
             if led_enum is None:
                 response.success = False
@@ -281,8 +283,6 @@ class RoboboBaseNode(Node):
         try:
             angle = request.angle
             speed = request.speed if request.speed > 0 else 50
-
-            # Non-blocking call
             self.rob.movePanTo(angle, speed, True)
 
             response.success = True
@@ -301,10 +301,7 @@ class RoboboBaseNode(Node):
         try:
             angle = request.angle
             speed = request.speed if request.speed > 0 else 50
-
-            # Non-blocking call
             self.rob.moveTiltTo(angle, speed, True)
-
             response.success = True
 
         except Exception as e:

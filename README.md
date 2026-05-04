@@ -10,7 +10,12 @@ Some of the smartphone sensors have been implemented (IMU, Brightness, ARuco, QR
 ### How do I do this?
 
 Remember to have robobopy installed in your python environment
-``pip install robobopy``
+```
+pip install robobopy
+pip install robobopy_videostream
+```
+
+ROS2 needs to include the CVBridge. If that hasn't been installed yet do it as so (eg. ``sudo apt install ros-jazzy-cv-bridge``)
 
 Download the latest release and extract it in your ROS2 Workspace
 Then just source your ROS2 environment and call the installation script
