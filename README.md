@@ -42,6 +42,7 @@ robobo_container:
      - speech
      - audio
      - emotion
+     - camera
      - qr
      - aruco
      - blob
