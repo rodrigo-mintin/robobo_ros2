@@ -30,31 +30,13 @@ from robobopy.utils.Color import Color
 from robobopy.utils.Wheels import Wheels
 
 class RoboboBaseNode(Node):
-
-    def __init__(self):
-        # Temporary init to read parameters
+    def __init__(self, rob, robot_name):
         super().__init__('robobo_base_node')
 
-        # --- Parameters ---
-        self.declare_parameter('ip', '127.0.0.1')
-        self.declare_parameter('robot_id', 0)
+        self.rob = rob
+        self.robot_name = robot_name
 
-        self.declare_parameter('robot_name', '0')
-        self.declare_parameter('connection_type', 'sim')  # 'sim' or 'real'
-
-        # --- Namespace ---
-        robot_name = self.get_parameter('robot_name').value
-        self._namespace = f'/robobo/robot_{robot_name}/base'
-        self.get_logger().info(f"Namespace: {self._namespace}")
-
-        # --- Connect to Robobo ---
-        robot_id = self.get_parameter('robot_id').value
-        ip = self.get_parameter('ip').value
-        self.rob = Robobo(ip, robot_id=robot_id)
-        self.rob.connect()
-
-        self.rob.moveWheelsByTime(10,10,0.5,wait=True)
-        self.rob.moveWheelsByTime(-10,-10,0.5,wait=False)
+        self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
         # --- IR sensors ---
         self.ir_order = [
@@ -266,6 +248,8 @@ class RoboboBaseNode(Node):
     # LED Service
     # =========================
     def handle_set_led(self, request, response):
+        led_enum = getattr(LED, request.led)
+        color_enum = getattr(Color, request.color)
         try:
             if led_enum is None:
                 response.success = False
@@ -299,8 +283,6 @@ class RoboboBaseNode(Node):
         try:
             angle = request.angle
             speed = request.speed if request.speed > 0 else 50
-
-            # Non-blocking call
             self.rob.movePanTo(angle, speed, True)
 
             response.success = True
@@ -319,10 +301,7 @@ class RoboboBaseNode(Node):
         try:
             angle = request.angle
             speed = request.speed if request.speed > 0 else 50
-
-            # Non-blocking call
             self.rob.moveTiltTo(angle, speed, True)
-
             response.success = True
 
         except Exception as e:
@@ -598,16 +577,3 @@ class RoboboBaseNode(Node):
         except Exception:
             pass
         super().destroy_node()
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = RoboboBaseNode()
-
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-
-    node.destroy_node()
-    rclpy.shutdown()

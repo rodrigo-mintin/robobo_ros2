@@ -4,12 +4,18 @@ Some virtual nodes written in python (rclpy) and ROS2 Jazzy to communicate with 
 
 ### What's in?
 
-Currently all the sensors and actuators from the ROB base are implemented and supported
+Currently all the sensors and actuators from the ROB base are implemented and supported.
+Some of the smartphone sensors have been implemented (IMU, Brightness, ARuco, QR, Blob, Speech, Audio and Emotion)
 
 ### How do I do this?
 
 Remember to have robobopy installed in your python environment
-``pip install robobopy``
+```
+pip install robobopy
+pip install robobopy_videostream
+```
+
+ROS2 needs to include the CVBridge. If that hasn't been installed yet do it as so (eg. ``sudo apt install ros-jazzy-cv-bridge``)
 
 Download the latest release and extract it in your ROS2 Workspace
 Then just source your ROS2 environment and call the installation script
@@ -22,17 +28,27 @@ ros2 run robobo_ros2 robobo_base_node --ros-args -p ip:=IP_ROBOT -p robot_id:=ID
 
 #### Launch Parameters
 
-| Parameter    | Effect |
-| -------- | ------- |
-| ip  | Robobo's IP, use the app's provided IP or 'localhost'/127.0.0.1 for RoboboSim   |
-| robot_id | For multirobot purposes within RoboboSim. In multi-robot simulation, use 0 for the first robot, 1 for the second, etc. |
-| robot_name | Allows to set the robot's name within the namespace. Mostly for multi-robot purposes |
+Launch is now done easily through a YAML config file. There is a sample within the project `robobo_ros2/config/sample.yaml`
 
-Robot ID and and Robot Name have been split so real robots don't depend on Robot ID (which is a sim-only parameter) for their naming within the namespace.
-This allows to run several real and simulation nodes under the same namespace without issue
+```
+robobo_container:
+  ros__parameters:
+    robot_name: "0"
+    ip: localhost
+
+    modules:
+     - imu
+     - brightness
+     - speech
+     - audio
+     - emotion
+     - qr
+     - aruco
+     - blob
+```
 
 ### What's next?
 
-- Smartphone sensors (IMU is particularly interesting)
-- There aren't many smartphone actuators but some QoL services will be implemented to interact with camera sensors
+- Finish implementing smartphone sensors and actuators
+- Proper debug and testing
 
