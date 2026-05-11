@@ -23,7 +23,9 @@ Then just source your ROS2 environment and call the installation script
 tar -xzf robobo_ros2_dist.tar.gz
 source install/setup.bash
 
-ros2 run robobo_ros2 robobo_base_node --ros-args -p ip:=IP_ROBOT -p robot_id:=ID_ROBOT
+ros2 run robobo_ros2 robobo_container --ros-args -p ip:=IP_ROBOT -p robot_id:=ID_ROBOT
+OR
+ros2 run robobo_ros2 robobo_container --ros-args --params-file robobo.yaml
 ```
 
 #### Launch Parameters
