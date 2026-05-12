@@ -30,6 +30,8 @@ ros2 run robobo_ros2 robobo_base_node --ros-args -p ip:=IP_ROBOT -p robot_id:=ID
 
 Launch is now done easily through a YAML config file. There is a sample within the project `robobo_ros2/config/sample.yaml`
 
+If no modules are specified, all of them will be loaded, so the barebones parameters are the IP for the real robot and essentially no parameters for simulator.
+
 ```
 robobo_container:
   ros__parameters:

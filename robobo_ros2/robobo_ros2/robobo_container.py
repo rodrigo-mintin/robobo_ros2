@@ -33,7 +33,10 @@ class RoboboContainer(Node):
         self.declare_parameter('robot_id', 0)
 
         # Smartphone modules (list form is cleaner)
-        self.declare_parameter('modules', ['camera'])
+        self.declare_parameter('modules', [
+            'imu', 'brightness', 'audio', 'speech'
+            'camera', 'blob', 'qr', 'aruco', 'emotion'
+            ])
 
         self.robot_name = self.get_parameter('robot_name').value
         self.ip = self.get_parameter('ip').value

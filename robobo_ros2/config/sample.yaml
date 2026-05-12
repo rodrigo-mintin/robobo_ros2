@@ -1,14 +1,4 @@
 robobo_container:
   ros__parameters:
     robot_name: "0"
-    ip: localhost
-    modules:
-     - imu
-     - brightness
-     - speech
-     - audio
-     - emotion
-     - camera
-     - qr
-     - aruco
-     - blob
+    ip: 192.168.1.43
