@@ -1,9 +1,9 @@
-int32 id
+string id
 
 float32 x
 float32 y
 
-int32 distance
+float32 distance
 
 geometry_msgs/Point p1
 geometry_msgs/Point p2

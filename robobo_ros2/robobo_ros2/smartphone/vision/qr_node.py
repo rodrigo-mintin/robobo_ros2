@@ -39,7 +39,7 @@ class QRNode(Node):
             # -------------------------
             # Direct attribute access (correct SDK usage)
             # -------------------------
-            msg.id = int(qr.id)
+            msg.id = str(qr.id)
             msg.x = float(qr.x)
             msg.y = float(qr.y)
 
