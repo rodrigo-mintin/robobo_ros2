@@ -35,6 +35,7 @@ class RoboboBaseNode(Node):
 
         self.rob = rob
         self.robot_name = robot_name
+        self.rob_lock = threading.Lock()
 
         self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
@@ -137,7 +138,7 @@ class RoboboBaseNode(Node):
         )
 
         self.move_wheels_degrees_srv = self.create_service(
-            MoveWheels,
+            MoveWheelsDegrees,
             f'{self._namespace}/move_wheels_degrees',
             self.move_wheels_degrees_callback
         )
@@ -488,7 +489,7 @@ class RoboboBaseNode(Node):
             while thread.is_alive():
                 if goal_handle.is_cancel_requested:
                     with self.rob_lock:
-                        self.rob.stopWheels()  # or stop pan if exists
+                        self.rob.stopMotors()
                     goal_handle.canceled()
                     return MovePanAction.Result(success=False)
 
@@ -539,7 +540,7 @@ class RoboboBaseNode(Node):
             while thread.is_alive():
                 if goal_handle.is_cancel_requested:
                     with self.rob_lock:
-                        self.rob.stopWheels()  # replace if tilt stop exists
+                        self.rob.stopMotors()
                     goal_handle.canceled()
                     return MoveTiltAction.Result(success=False)
 
