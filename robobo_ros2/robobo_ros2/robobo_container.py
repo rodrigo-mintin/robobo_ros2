@@ -40,8 +40,7 @@ class RoboboContainer(Node):
         self.declare_parameter('modules', [
             'imu', 'brightness', 'audio', 'speech',
             'camera', 'blob', 'qr', 'aruco', 'emotion',
-            'object_recognition', 'noise', 'touch'
-        ])
+            'object_recognition', 'noise', 'touch'])
 
         self.robot_name = self.get_parameter('robot_name').value
         self.ip = self.get_parameter('ip').value

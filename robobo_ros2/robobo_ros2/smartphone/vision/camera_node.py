@@ -30,12 +30,6 @@ class CameraNode(Node):
             10
         )
 
-        self.camera_info_pub = self.create_publisher(
-            CameraInfo,
-            f'{self._namespace}/camera/camera_info',
-            10
-        )
-
         # Services for Camera Control
         self.create_service(
             SetCamera,
@@ -157,7 +151,6 @@ class CameraNode(Node):
                 info_msg.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
 
                 self.publisher.publish(msg)
-                self.camera_info_pub.publish(info_msg)
                 time.sleep(0.01)
 
         except Exception as e:
