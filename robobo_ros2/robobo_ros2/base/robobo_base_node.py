@@ -1,8 +1,13 @@
 import time
+import math
 import threading
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Int32MultiArray, Int32, Float32
+from geometry_msgs.msg import Twist, TransformStamped
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Range
+import tf2_ros
 
 from rclpy.action import ActionServer
 from robobo_ros2_interfaces.action import (
@@ -39,6 +44,34 @@ class RoboboBaseNode(Node):
 
         self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
+        # --- Kinematic & Odometry Parameters ---
+        self.declare_parameter('wheel_radius', 0.0275)
+        self.declare_parameter('track_width', 0.10)
+        self.declare_parameter('max_wheel_speed', 100.0)
+        self.declare_parameter('max_wheel_rad_s', 10.0)
+        self.declare_parameter('cmd_vel_timeout', 0.5)
+        self.declare_parameter('publish_tf', True)
+        self.declare_parameter('odom_frame_id', 'odom')
+        self.declare_parameter('base_frame_id', 'base_footprint')
+
+        self.wheel_radius = float(self.get_parameter('wheel_radius').value)
+        self.track_width = float(self.get_parameter('track_width').value)
+        self.max_wheel_speed = float(self.get_parameter('max_wheel_speed').value)
+        self.max_wheel_rad_s = float(self.get_parameter('max_wheel_rad_s').value)
+        self.cmd_vel_timeout = float(self.get_parameter('cmd_vel_timeout').value)
+        self.publish_tf = bool(self.get_parameter('publish_tf').value)
+        self.odom_frame_id = str(self.get_parameter('odom_frame_id').value)
+        self.base_frame_id = str(self.get_parameter('base_frame_id').value)
+
+        # Odometry State
+        self.pose_x = 0.0
+        self.pose_y = 0.0
+        self.pose_yaw = 0.0
+        self.last_wheel_l_pos = None
+        self.last_wheel_r_pos = None
+        self.last_odom_time = None
+        self.last_cmd_vel_time = None
+
         # --- IR sensors ---
         self.ir_order = [
             IR.FrontLL, IR.FrontL, IR.FrontC, IR.FrontR, IR.FrontRR,
@@ -53,14 +86,21 @@ class RoboboBaseNode(Node):
             10
         )
 
-        # Individual sensors
+        # Individual sensors (Int32 & sensor_msgs/Range)
         self.ir_single_pubs = {}
+        self.ir_range_pubs = {}
         for sensor in self.ir_order:
-            str_sensor = sensor.name
-            topic_name = f"{self._namespace}/ir/{str_sensor.lower()}"
-            self.ir_single_pubs[str_sensor.lower()] = self.create_publisher(
+            str_sensor = sensor.name.lower()
+            topic_name = f"{self._namespace}/ir/{str_sensor}"
+            self.ir_single_pubs[str_sensor] = self.create_publisher(
                 Int32,
                 topic_name,
+                10
+            )
+            range_topic_name = f"{self._namespace}/irs/{str_sensor}/range"
+            self.ir_range_pubs[str_sensor] = self.create_publisher(
+                Range,
+                range_topic_name,
                 10
             )
 
@@ -98,6 +138,22 @@ class RoboboBaseNode(Node):
 
         self.wheel_right_speed_pub = self.create_publisher(
             Int32, f'{self._namespace}/wheel/right/speed', 10)
+
+        # Odometry Publisher & TF Broadcaster
+        self.odom_pub = self.create_publisher(
+            Odometry,
+            f'{self._namespace}/odom',
+            10
+        )
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+
+        # --- Subscribers ---
+        self.cmd_vel_sub = self.create_subscription(
+            Twist,
+            f'{self._namespace}/cmd_vel',
+            self.cmd_vel_callback,
+            10
+        )
 
         # --- Services ---
 
@@ -175,26 +231,81 @@ class RoboboBaseNode(Node):
         self.timer = self.create_timer(0.1, self.read_sensors)
 
     # =========================
-    # Sensor Loop
+    # cmd_vel & Sensor Loop
     # =========================
+    def cmd_vel_callback(self, msg):
+        v_x = float(msg.linear.x)
+        w_z = float(msg.angular.z)
+
+        # Differential drive inverse kinematics
+        v_r = v_x + (w_z * self.track_width / 2.0)
+        v_l = v_x - (w_z * self.track_width / 2.0)
+
+        w_r = v_r / self.wheel_radius
+        w_l = v_l / self.wheel_radius
+
+        scale = self.max_wheel_speed / self.max_wheel_rad_s
+        speed_r = max(-100.0, min(100.0, w_r * scale))
+        speed_l = max(-100.0, min(100.0, w_l * scale))
+
+        with self.rob_lock:
+            if self.rob:
+                self.rob.moveWheels(int(speed_r), int(speed_l))
+
+        self.last_cmd_vel_time = time.time()
+
+    def normalize_angle(self, angle):
+        while angle > math.pi:
+            angle -= 2.0 * math.pi
+        while angle < -math.pi:
+            angle += 2.0 * math.pi
+        return angle
+
     def read_sensors(self):
         if not self.rob:
             return
         try:
+            now = self.get_clock().now()
+
+            # Safety Watchdog for cmd_vel
+            if self.last_cmd_vel_time is not None:
+                if (time.time() - self.last_cmd_vel_time) > self.cmd_vel_timeout:
+                    with self.rob_lock:
+                        if self.rob:
+                            self.rob.moveWheels(0, 0)
+                    self.last_cmd_vel_time = None
+
             # --- IR sensors ---
             ir_data = self.rob.readAllIRSensor()
 
-            if not isinstance(ir_data, dict):
-                return
+            if isinstance(ir_data, dict):
+                ir_msg = Int32MultiArray()
+                ir_msg.data = [int(ir_data.get(sensor.value, 0)) for sensor in self.ir_order]
+                self.ir_pub.publish(ir_msg)
 
-            ir_msg = Int32MultiArray()
-            ir_msg.data = [int(ir_data.get(sensor.value, 0)) for sensor in self.ir_order]
-            self.ir_pub.publish(ir_msg)
+                for sensor in self.ir_order:
+                    str_sensor = sensor.name.lower()
+                    val = float(ir_data.get(sensor.value, 0))
 
-            for sensor in self.ir_order:
-                msg = Int32()
-                msg.data = int(ir_data.get(sensor.value, 0))
-                self.ir_single_pubs[sensor.name.lower()].publish(msg)
+                    msg = Int32()
+                    msg.data = int(val)
+                    self.ir_single_pubs[str_sensor].publish(msg)
+
+                    # Range sensor publication
+                    range_msg = Range()
+                    range_msg.header.stamp = now.to_msg()
+                    range_msg.header.frame_id = f"ir_{str_sensor}_link"
+                    range_msg.radiation_type = Range.INFRARED
+                    range_msg.field_of_view = 0.26
+                    range_msg.min_range = 0.02
+                    range_msg.max_range = 0.40
+
+                    if val <= 0:
+                        range_msg.range = float('inf')
+                    else:
+                        range_msg.range = max(range_msg.min_range, min(range_msg.max_range, val / 100.0))
+
+                    self.ir_range_pubs[str_sensor].publish(range_msg)
 
             # --- Battery ---
             battery_level = self.rob.readBatteryLevel('base')
@@ -215,7 +326,7 @@ class RoboboBaseNode(Node):
             msg.data = tilt
             self.tilt_pub.publish(msg)
 
-            # --- Wheels ---
+            # --- Wheels & Odometry ---
             left_pos = self.rob.readWheelPosition(Wheels.L)
             right_pos = self.rob.readWheelPosition(Wheels.R)
 
@@ -241,6 +352,71 @@ class RoboboBaseNode(Node):
                 msg = Int32()
                 msg.data = int(right_speed)
                 self.wheel_right_speed_pub.publish(msg)
+
+            # Odometry calculation & TF publication
+            if isinstance(left_pos, (int, float)) and isinstance(right_pos, (int, float)):
+                if self.last_wheel_l_pos is not None and self.last_wheel_r_pos is not None and self.last_odom_time is not None:
+                    dt = (now - self.last_odom_time).nanoseconds / 1e9
+                    if dt > 0:
+                        delta_l_deg = float(left_pos - self.last_wheel_l_pos)
+                        delta_r_deg = float(right_pos - self.last_wheel_r_pos)
+
+                        delta_l_rad = math.radians(delta_l_deg)
+                        delta_r_rad = math.radians(delta_r_deg)
+
+                        delta_s_l = delta_l_rad * self.wheel_radius
+                        delta_s_r = delta_r_rad * self.wheel_radius
+
+                        delta_s = (delta_s_r + delta_s_l) / 2.0
+                        delta_yaw = (delta_s_r - delta_s_l) / self.track_width
+
+                        self.pose_x += delta_s * math.cos(self.pose_yaw + delta_yaw / 2.0)
+                        self.pose_y += delta_s * math.sin(self.pose_yaw + delta_yaw / 2.0)
+                        self.pose_yaw = self.normalize_angle(self.pose_yaw + delta_yaw)
+
+                        v_x = delta_s / dt
+                        w_z = delta_yaw / dt
+
+                        qz = math.sin(self.pose_yaw / 2.0)
+                        qw = math.cos(self.pose_yaw / 2.0)
+
+                        odom_msg = Odometry()
+                        odom_msg.header.stamp = now.to_msg()
+                        odom_msg.header.frame_id = self.odom_frame_id
+                        odom_msg.child_frame_id = self.base_frame_id
+
+                        odom_msg.pose.pose.position.x = self.pose_x
+                        odom_msg.pose.pose.position.y = self.pose_y
+                        odom_msg.pose.pose.position.z = 0.0
+
+                        odom_msg.pose.pose.orientation.x = 0.0
+                        odom_msg.pose.pose.orientation.y = 0.0
+                        odom_msg.pose.pose.orientation.z = qz
+                        odom_msg.pose.pose.orientation.w = qw
+
+                        odom_msg.twist.twist.linear.x = v_x
+                        odom_msg.twist.twist.linear.y = 0.0
+                        odom_msg.twist.twist.angular.z = w_z
+
+                        self.odom_pub.publish(odom_msg)
+
+                        if self.publish_tf:
+                            t = TransformStamped()
+                            t.header.stamp = now.to_msg()
+                            t.header.frame_id = self.odom_frame_id
+                            t.child_frame_id = self.base_frame_id
+                            t.transform.translation.x = self.pose_x
+                            t.transform.translation.y = self.pose_y
+                            t.transform.translation.z = 0.0
+                            t.transform.rotation.x = 0.0
+                            t.transform.rotation.y = 0.0
+                            t.transform.rotation.z = qz
+                            t.transform.rotation.w = qw
+                            self.tf_broadcaster.sendTransform(t)
+
+                self.last_wheel_l_pos = left_pos
+                self.last_wheel_r_pos = right_pos
+                self.last_odom_time = now
 
         except Exception as e:
             self.get_logger().error(f"Sensor read failed: {e}")
@@ -373,6 +549,8 @@ class RoboboBaseNode(Node):
     def reset_wheel_encoders_callback(self, request, response):
         try:
             self.rob.resetWheelEncoders()
+            self.last_wheel_l_pos = None
+            self.last_wheel_r_pos = None
             response.success = True
         except Exception as e:
             self.get_logger().error(f'Failed to reset encoders: {e}')

@@ -36,17 +36,12 @@ class RoboboContainer(Node):
         self.declare_parameter('ip', '127.0.0.1')
         self.declare_parameter('robot_id', 0)
 
-<<<<<<< Updated upstream
-        # Smartphone modules (list form is cleaner)
-        self.declare_parameter('modules', ['camera'])
-=======
         # Smartphone modules
         self.declare_parameter('modules', [
             'imu', 'brightness', 'audio', 'speech',
             'camera', 'blob', 'qr', 'aruco', 'emotion',
             'object_recognition', 'noise', 'touch'
-            ])
->>>>>>> Stashed changes
+        ])
 
         self.robot_name = self.get_parameter('robot_name').value
         self.ip = self.get_parameter('ip').value
