@@ -12,3 +12,6 @@ robobo_container:
      - qr
      - aruco
      - blob
+     - object_recognition
+     - noise
+     - touch
