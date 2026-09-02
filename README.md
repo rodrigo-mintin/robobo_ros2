@@ -15,8 +15,6 @@ pip install robobopy
 pip install robobopy_videostream
 ```
 
-ROS2 needs to include CVBridge. If that hasn't been installed yet, install it (e.g. `sudo apt install ros-jazzy-cv-bridge`).
-
 Build the workspace and source the setup script:
 ```bash
 colcon build

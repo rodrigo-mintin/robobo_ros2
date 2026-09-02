@@ -2,7 +2,6 @@ import rclpy
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge
 
 import threading
 import time
@@ -24,8 +23,6 @@ class CameraNode(Node):
 
         self.declare_parameter('camera_frame_id', 'camera_optical_frame')
         self.camera_frame_id = str(self.get_parameter('camera_frame_id').value)
-
-        self.bridge = CvBridge()
 
         self.publisher = self.create_publisher(
             Image,
@@ -132,9 +129,15 @@ class CameraNode(Node):
                 stamp = self.get_clock().now().to_msg()
                 h, w = frame.shape[:2]
 
-                msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
+                msg = Image()
                 msg.header.stamp = stamp
                 msg.header.frame_id = self.camera_frame_id
+                msg.height = h
+                msg.width = w
+                msg.encoding = 'bgr8'
+                msg.is_bigendian = 0
+                msg.step = w * 3
+                msg.data = frame.tobytes()
 
                 info_msg = CameraInfo()
                 info_msg.header.stamp = stamp
