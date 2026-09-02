@@ -17,7 +17,7 @@ file(GLOB ACTION_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "action/*.action")
 file(GLOB MSG_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "msg/*.msg")
 
 # Ensure CMake re-runs when new files are added
-set_property(DIRECTORY PROPERTY CMAKE_CONFIGURE_DEPENDS srv action)
+set_property(DIRECTORY PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/srv ${CMAKE_CURRENT_SOURCE_DIR}/action ${CMAKE_CURRENT_SOURCE_DIR}/msg)
 
 # -------------------------------
 # Generate interfaces
@@ -26,8 +26,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   ${SRV_FILES}
   ${ACTION_FILES}
   ${MSG_FILES}
-  DEPENDENCIES action_msgs
-  DEPENDENCIES geometry_msgs builtin_interfaces
+  DEPENDENCIES action_msgs geometry_msgs builtin_interfaces
 )
 
 # -------------------------------
