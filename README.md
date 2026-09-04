@@ -25,7 +25,12 @@ ros2 run robobo_ros2 robobo_container --ros-args -p ip:=IP_ROBOT -p robot_name:=
 
 #### Launch Parameters
 
-Launch is done through command line arguments or via a YAML config file. A sample is provided in `robobo_ros2/config/sample.yaml`:
+Launch is done through command line arguments or via a YAML config file. A sample is provided in `robobo_ros2/config/sample.yaml`.
+
+You can run the node with the YAML file as well:
+```bash
+ros2 run robobo_ros2 robobo_container --ros-args --params-file /path/to/params.yaml
+```
 
 If no modules are specified, all of them will be loaded, so the barebones parameters are the IP for the real robot and essentially no parameters for simulator.
 
@@ -58,8 +63,4 @@ robobo_container:
 | `robot_id` | Robot index for multi-robot simulation in RoboboSim (default: `0`). |
 | `modules` | List of smartphone modules to load. |
 
-### What's next?
-
-- Nav2 navigation stack integration
-- Expanded hardware testing and debugging
 

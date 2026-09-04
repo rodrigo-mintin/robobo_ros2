@@ -48,5 +48,6 @@
   </export>
 
   <exec_depend>robobo_ros2_interfaces</exec_depend>
-
-</package>
+  
+  <!-- Make sure Python scripts are executable -->
+  <exec_depend>rclpy</exec_depend>
