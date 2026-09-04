@@ -64,3 +64,15 @@ robobo_container:
 | `modules` | List of smartphone modules to load. |
 
 
+### Running the demo
+
+You can run a simple demo provided with the repo to check that everything is working correctly and get a hint of how to start programming with the Robobo ROS2 Virtual node
+
+```
+ros2 run robobo_ros2 sample_demo_new.py --ros-args -p ip:=ROBOBO_IP
+```
+
+Or with the launch file
+```
+ros2 launch robobo_ros2 sample_demo.launch.py ip:=ROBOBO_IP
+```
