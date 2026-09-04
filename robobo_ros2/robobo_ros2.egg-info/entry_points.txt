@@ -1,3 +1,0 @@
-[console_scripts]
-robobo_container = robobo_ros2.robobo_container:main
-sample_demo_new = robobo_ros2.sample_demo_new:main
