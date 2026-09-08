@@ -24,8 +24,8 @@ setup(
         # Install service definitions
         (os.path.join('share', package_name, 'srv'), glob('srv/*.srv')),
         
-        # Install Python scripts
-        (os.path.join('share', package_name, 'scripts'), glob('scripts/*.py')),
+        # Install config files (YAML)
+        (os.path.join('share', package_name, 'config'), glob('config/*.yaml') + glob('config/*.yml')),
     ],
 
     install_requires=['setuptools'],
@@ -48,7 +48,9 @@ setup(
     entry_points={
         'console_scripts': [
             'robobo_container = robobo_ros2.robobo_container:main',
-            'sample_demo_new = robobo_ros2.sample_demo_new:main',
+            'robobo_container.py = robobo_ros2.robobo_container:main',
+            'sample_demo = robobo_ros2.sample_demo:main',
+            'sample_demo.py = robobo_ros2.sample_demo:main',
         ],
     },
 )

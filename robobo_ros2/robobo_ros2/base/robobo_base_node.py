@@ -425,14 +425,22 @@ class RoboboBaseNode(Node):
     # LED Service
     # =========================
     def handle_set_led(self, request, response):
-        led_enum = getattr(LED, request.led)
-        color_enum = getattr(Color, request.color)
         try:
+            led_name = request.led.strip() if request.led else 'All'
+            led_enum = getattr(LED, led_name, None)
+            if led_enum is None:
+                for candidate in (led_name.capitalize(), led_name.upper()):
+                    led_enum = getattr(LED, candidate, None)
+                    if led_enum is not None:
+                        break
+
             if led_enum is None:
                 response.success = False
                 response.message = f"Invalid LED: {request.led}"
                 return response
 
+            color_name = request.color.strip().upper() if request.color else 'OFF'
+            color_enum = getattr(Color, color_name, None)
             if color_enum is None:
                 response.success = False
                 response.message = f"Invalid color: {request.color}"
@@ -563,10 +571,10 @@ class RoboboBaseNode(Node):
     def _move_wheels_time(self, right_speed, left_speed, duration):
         try:
             self.rob.moveWheelsByTime(
-                right_speed,
-                left_speed,
-                duration,
-                wait=False
+                int(right_speed),
+                int(left_speed),
+                float(duration),
+                wait=True
             )
         except Exception as e:
             self.get_logger().error(f'Time movement failed: {e}')
@@ -626,13 +634,13 @@ class RoboboBaseNode(Node):
     # =========================
     def _move_pan(self, angle, speed):
         try:
-            self.rob.movePanTo(angle, speed, False)
+            self.rob.movePanTo(int(angle), int(speed), True)
         except Exception as e:
             self.get_logger().error(f'Pan movement failed: {e}')
     
     def _move_tilt(self, angle, speed):
         try:
-            self.rob.moveTiltTo(angle, speed, False)
+            self.rob.moveTiltTo(int(angle), int(speed), True)
         except Exception as e:
             self.get_logger().error(f'Tilt movement failed: {e}')
 

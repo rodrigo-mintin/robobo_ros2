@@ -24,6 +24,9 @@ from robobo_ros2.smartphone.vision.object_recognition_node import ObjectRecognit
 from robobo_ros2.smartphone.touch_and_gesture_node import TouchAndGestureNode
 
 
+from rcl_interfaces.msg import ParameterDescriptor
+
+
 class RoboboContainer(Node):
 
     def __init__(self):
@@ -32,7 +35,7 @@ class RoboboContainer(Node):
         # -------------------------
         # Parameters
         # -------------------------
-        self.declare_parameter('robot_name', '0')
+        self.declare_parameter('robot_name', '0', ParameterDescriptor(dynamic_typing=True))
         self.declare_parameter('ip', '127.0.0.1')
         self.declare_parameter('robot_id', 0)
 
@@ -42,7 +45,7 @@ class RoboboContainer(Node):
             'camera', 'blob', 'qr', 'aruco', 'emotion',
             'object_recognition', 'noise', 'touch'])
 
-        self.robot_name = self.get_parameter('robot_name').value
+        self.robot_name = str(self.get_parameter('robot_name').value)
         self.ip = self.get_parameter('ip').value
         self.robot_id = self.get_parameter('robot_id').value
         self.modules = self.get_parameter('modules').value

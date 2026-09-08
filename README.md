@@ -11,15 +11,33 @@ Some virtual nodes written in python (rclpy) and ROS2 Jazzy to communicate with 
 
 Remember to have `robobopy` and `robobopy_videostream` installed in your python environment:
 ```bash
+pip install -r robobo_ros2/requirements.txt
+```
+Or manually:
+```bash
 pip install robobopy
 pip install robobopy_videostream
 ```
 
-Build the workspace and source the setup script:
+Build the workspace (builds both `robobo_ros2_interfaces` and `robobo_ros2`) and source the setup script:
+
+**Linux / macOS (Bash):**
 ```bash
 colcon build
 source install/setup.bash
+```
 
+**Windows (PowerShell / CMD):**
+```powershell
+colcon build
+# PowerShell
+.\install\setup.ps1
+# Or CMD
+call install\setup.bat
+```
+
+Run the container node directly:
+```bash
 ros2 run robobo_ros2 robobo_container --ros-args -p ip:=IP_ROBOT -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
 ```
 
@@ -30,6 +48,18 @@ Launch is done through command line arguments or via a YAML config file. A sampl
 You can run the node with the YAML file as well:
 ```bash
 ros2 run robobo_ros2 robobo_container --ros-args --params-file /path/to/params.yaml
+```
+
+Or using the launch file:
+```bash
+# Launch with defaults (IP: 127.0.0.1, robot_name: '0', robot_id: 0)
+ros2 launch robobo_ros2 robobo.launch.py
+
+# Launch with custom arguments
+ros2 launch robobo_ros2 robobo.launch.py ip:=IP_ROBOT robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
+
+# Launch with a YAML parameter configuration file
+ros2 launch robobo_ros2 robobo.launch.py params_file:=/path/to/params.yaml
 ```
 
 If no modules are specified, all of them will be loaded, so the barebones parameters are the IP for the real robot and essentially no parameters for simulator.
@@ -62,17 +92,21 @@ robobo_container:
 | `ip` | Robobo IP address (app IP or `localhost` / `127.0.0.1` for RoboboSim). |
 | `robot_id` | Robot index for multi-robot simulation in RoboboSim (default: `0`). |
 | `modules` | List of smartphone modules to load. |
+| `cmd_vel_timeout` | *(Optional)* Safety watchdog timeout in seconds for `cmd_vel` velocity commands (default: `0.5`). |
 
 
 ### Running the demo
 
-You can run a simple demo provided with the repo to check that everything is working correctly and get a hint of how to start programming with the Robobo ROS2 Virtual node
+You can run a simple demo provided with the repo to check that everything is working correctly and see how to program with the Robobo ROS 2 nodes (LEDs, wheels, pan/tilt).
 
-```
-ros2 run robobo_ros2 sample_demo_new.py --ros-args -p ip:=ROBOBO_IP
+#### Option A: Launch both container and demo together
+This automatically launches `robobo_container` and starts the `sample_demo` test sequence:
+```bash
+ros2 launch robobo_ros2 sample_demo.launch.py ip:=ROBOBO_IP robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
 ```
 
-Or with the launch file
-```
-ros2 launch robobo_ros2 sample_demo.launch.py ip:=ROBOBO_IP
-```
+#### Option B: Run the demo against an already running container
+If `robobo_container` is already running in another terminal:
+```bash
+ros2 run robobo_ros2 sample_demo --ros-args -p ip:=ROBOBO_IP -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
+```

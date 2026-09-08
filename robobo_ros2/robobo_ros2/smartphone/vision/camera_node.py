@@ -30,6 +30,12 @@ class CameraNode(Node):
             10
         )
 
+        self.camera_info_pub = self.create_publisher(
+            CameraInfo,
+            f'{self._namespace}/camera/camera_info',
+            10
+        )
+
         # Services for Camera Control
         self.create_service(
             SetCamera,
@@ -115,9 +121,16 @@ class CameraNode(Node):
             self.get_logger().info('Video stream connected')
 
             while rclpy.ok() and self.running:
-                frame = self.video.getImage()
+                try:
+                    frame = self.video.getImage()
+                except Exception as e:
+                    if self.running and rclpy.ok():
+                        self.get_logger().warn(f'Could not fetch camera frame: {e}', throttle_duration_sec=5.0)
+                    time.sleep(0.1)
+                    continue
 
                 if frame is None:
+                    time.sleep(0.01)
                     continue
 
                 stamp = self.get_clock().now().to_msg()
@@ -151,11 +164,14 @@ class CameraNode(Node):
                 info_msg.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
 
                 self.publisher.publish(msg)
+                self.camera_info_pub.publish(info_msg)
                 time.sleep(0.01)
 
         except Exception as e:
             if rclpy.ok():
                 self.get_logger().error(f'Camera stream failed: {e}')
+        finally:
+            self.running = False
 
     def destroy_node(self):
         self.running = False
@@ -165,6 +181,11 @@ class CameraNode(Node):
 
         try:
             self.video.disconnect()
+        except Exception:
+            pass
+
+        try:
+            self.rob.stopStream()
         except Exception:
             pass
 
