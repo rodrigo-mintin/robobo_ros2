@@ -97,16 +97,39 @@ robobo_container:
 
 ### Running the demo
 
-You can run a simple demo provided with the repo to check that everything is working correctly and see how to program with the Robobo ROS 2 nodes (LEDs, wheels, pan/tilt).
+You can run the standalone demo script provided with the repo to test robot functionality (LEDs, wheel movements, pan/tilt motors).
 
-#### Option A: Launch both container and demo together
-This automatically launches `robobo_container` and starts the `sample_demo` test sequence:
+The demo is a standalone client script that communicates with an already running `robobo_container` virtual node.
+
+#### Step 1: Launch the Robobo container
+
+In your first terminal, launch the container node (connecting to your real robot or simulator):
+
 ```bash
-ros2 launch robobo_ros2 sample_demo.launch.py ip:=ROBOBO_IP robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
+# Using launch file (defaults to IP 127.0.0.1, robot_name '0'):
+ros2 launch robobo_ros2 robobo.launch.py
+
+# Or with custom parameters:
+ros2 launch robobo_ros2 robobo.launch.py ip:=ROBOBO_IP robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
+
+# Or directly with ros2 run:
+ros2 run robobo_ros2 robobo_container --ros-args -p ip:=ROBOBO_IP -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
 ```
 
-#### Option B: Run the demo against an already running container
-If `robobo_container` is already running in another terminal:
+#### Step 2: Run the demo script
+
+While the virtual node is running, open a second terminal (sourced) and run the demo:
+
 ```bash
-ros2 run robobo_ros2 sample_demo --ros-args -p ip:=ROBOBO_IP -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
+# Run with default robot_name '0':
+ros2 run robobo_ros2 sample_demo
+
+# Run with a specific robot name or timeout:
+ros2 run robobo_ros2 sample_demo --robot-name ROBOT_NAME --timeout 15
+
+# Or execute directly with python:
+python src/robobo_ros2/robobo_ros2/sample_demo.py --robot-name ROBOT_NAME
+
+# Show all available options:
+ros2 run robobo_ros2 sample_demo --help
 ```
