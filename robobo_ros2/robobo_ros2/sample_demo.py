@@ -36,10 +36,9 @@ try:
         MoveTilt,
         MoveWheelsTime as MoveWheelsTimeAction,
     )
-    # IR (infrared proximity) sensor topic message.
-    # NOTE: adjust this import path/class name if it differs in your
-    # robobo_ros2_interfaces build (e.g. "Irs" instead of "IRs").
-    from robobo_ros2_interfaces.msg import IRs
+    # Aggregate IR (infrared proximity) sensor topic:
+    #   /robobo/robot_<n>/base/ir  ->  std_msgs/msg/Int32MultiArray
+    from std_msgs.msg import Int32MultiArray
 except ImportError as e:
     sys.stderr.write(
         f"[ERROR] Failed to import ROS 2 dependencies: {e}\n"
@@ -132,15 +131,15 @@ class RoboboDemo(Node):
             self, MoveWheelsTimeAction, f'{self.base_ns}/move_wheels_time'
         )
 
-        # Subscribe to the IR (infrared) proximity sensor topic
+        # Subscribe to the aggregate IR (infrared) proximity sensor topic
         self.latest_irs = None
         self.irs_sub = self.create_subscription(
-            IRs, f'{self.base_ns}/irs', self._irs_callback, 10
+            Int32MultiArray, f'{self.base_ns}/ir', self._irs_callback, 10
         )
 
     def _irs_callback(self, msg):
-        """Store the most recent IR sensor reading."""
-        self.latest_irs = msg
+        """Store the most recent IR sensor reading (list of 8 ints)."""
+        self.latest_irs = list(msg.data)
 
     def wait_for_ready(self, timeout_sec=None):
         """Wait for required services and action servers to become available on the base node."""
@@ -223,8 +222,16 @@ class RoboboDemo(Node):
         return False
 
     def read_irs(self, timeout_sec=2.0):
-        """Wait for and log a fresh reading from the IR sensor topic."""
-        self.get_logger().info(f"Reading IR sensors (topic: {self.base_ns}/irs)...")
+        """Wait for and log a fresh reading from the IR sensor topic.
+
+        Returns a list of 8 raw ints from std_msgs/Int32MultiArray on
+        '{base_ns}/ir'. The exact ordering of the 8 sensors is not
+        guaranteed here - subscribe to the individual
+        '{base_ns}/ir/<sensor>' topics (frontc, frontl, frontll,
+        frontr, frontrr, backc, backl, backr) if you need to identify
+        a specific one.
+        """
+        self.get_logger().info(f"Reading IR sensors (topic: {self.base_ns}/ir)...")
         self.latest_irs = None
         start_time = time.time()
 
@@ -237,7 +244,7 @@ class RoboboDemo(Node):
             )
             return None
 
-        self.get_logger().info(f"  -> IR values: {self.latest_irs}")
+        self.get_logger().info(f"  -> IR values (raw): {self.latest_irs}")
         return self.latest_irs
 
     def move_wheels(self, right_speed, left_speed, duration):
