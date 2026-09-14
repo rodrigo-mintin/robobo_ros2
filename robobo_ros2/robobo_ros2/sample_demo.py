@@ -36,6 +36,10 @@ try:
         MoveTilt,
         MoveWheelsTime as MoveWheelsTimeAction,
     )
+    # IR (infrared proximity) sensor topic message.
+    # NOTE: adjust this import path/class name if it differs in your
+    # robobo_ros2_interfaces build (e.g. "Irs" instead of "IRs").
+    from robobo_ros2_interfaces.msg import IRs
 except ImportError as e:
     sys.stderr.write(
         f"[ERROR] Failed to import ROS 2 dependencies: {e}\n"
@@ -128,6 +132,16 @@ class RoboboDemo(Node):
             self, MoveWheelsTimeAction, f'{self.base_ns}/move_wheels_time'
         )
 
+        # Subscribe to the IR (infrared) proximity sensor topic
+        self.latest_irs = None
+        self.irs_sub = self.create_subscription(
+            IRs, f'{self.base_ns}/irs', self._irs_callback, 10
+        )
+
+    def _irs_callback(self, msg):
+        """Store the most recent IR sensor reading."""
+        self.latest_irs = msg
+
     def wait_for_ready(self, timeout_sec=None):
         """Wait for required services and action servers to become available on the base node."""
         if timeout_sec is None:
@@ -207,6 +221,24 @@ class RoboboDemo(Node):
         else:
             self.get_logger().error("  -> Call to set_led service timed out")
         return False
+
+    def read_irs(self, timeout_sec=2.0):
+        """Wait for and log a fresh reading from the IR sensor topic."""
+        self.get_logger().info(f"Reading IR sensors (topic: {self.base_ns}/irs)...")
+        self.latest_irs = None
+        start_time = time.time()
+
+        while self.latest_irs is None and (time.time() - start_time) < timeout_sec:
+            rclpy.spin_once(self, timeout_sec=0.1)
+
+        if self.latest_irs is None:
+            self.get_logger().warning(
+                f"  -> No IR data received within {timeout_sec:.1f}s"
+            )
+            return None
+
+        self.get_logger().info(f"  -> IR values: {self.latest_irs}")
+        return self.latest_irs
 
     def move_wheels(self, right_speed, left_speed, duration):
         """Send wheel movement action goal synchronously."""
@@ -332,40 +364,50 @@ class RoboboDemo(Node):
         """Run the demonstration sequence."""
         self.get_logger().info("\n>>> Starting Robobo Demonstration Sequence <<<\n")
 
-        # 1. Set LED to RED
-        self.get_logger().info("[Step 1/7] Set all LEDs to RED")
+        # 1. Read IR sensors before doing anything else (baseline reading)
+        self.get_logger().info("[Step 1/9] Read initial IR sensor values")
+        self.read_irs()
+        time.sleep(0.5)
+
+        # 2. Set LED to RED
+        self.get_logger().info("[Step 2/9] Set all LEDs to RED")
         self.set_led('All', 'RED')
         time.sleep(0.5)
 
-        # 2. Move forward for 2 seconds
-        self.get_logger().info("[Step 2/7] Move forward for 2.0 seconds")
+        # 3. Move forward for 2 seconds
+        self.get_logger().info("[Step 3/9] Move forward for 2.0 seconds")
         self.move_wheels(right_speed=50.0, left_speed=50.0, duration=2.0)
         time.sleep(0.5)
 
-        # 3. Set LED to BLUE
-        self.get_logger().info("[Step 3/7] Set all LEDs to BLUE")
+        # 4. Set LED to BLUE
+        self.get_logger().info("[Step 4/9] Set all LEDs to BLUE")
         self.set_led('All', 'BLUE')
         time.sleep(0.5)
 
-        # 4. Move pan motor to 45 degrees
-        self.get_logger().info("[Step 4/7] Move pan motor to 45.0 degrees")
+        # 5. Move pan motor to 45 degrees
+        self.get_logger().info("[Step 5/9] Move pan motor to 45.0 degrees")
         self.move_pan(angle=45.0, speed=30.0)
         time.sleep(0.5)
 
-        # 5. Move tilt motor to 30 degrees
-        self.get_logger().info("[Step 5/7] Move tilt motor to 30.0 degrees")
+        # 6. Move tilt motor to 30 degrees
+        self.get_logger().info("[Step 6/9] Move tilt motor to 30.0 degrees")
         self.move_tilt(angle=30.0, speed=20.0)
         time.sleep(0.5)
 
-        # 6. Reset pan and tilt to neutral
-        self.get_logger().info("[Step 6/7] Reset pan to 0.0° and tilt to 5.0° (neutral)")
+        # 7. Reset pan and tilt to neutral
+        self.get_logger().info("[Step 7/9] Reset pan to 0.0° and tilt to 5.0° (neutral)")
         self.move_pan(angle=0.0, speed=30.0)
         self.move_tilt(angle=5.0, speed=20.0)
         time.sleep(0.5)
 
-        # 7. Set LED to GREEN
-        self.get_logger().info("[Step 7/7] Set all LEDs to GREEN")
+        # 8. Set LED to GREEN
+        self.get_logger().info("[Step 8/9] Set all LEDs to GREEN")
         self.set_led('All', 'GREEN')
+        time.sleep(0.5)
+
+        # 9. Read IR sensors again at the end (final reading, for comparison)
+        self.get_logger().info("[Step 9/9] Read final IR sensor values")
+        self.read_irs()
 
         self.get_logger().info("\n==================================================")
         self.get_logger().info("  Robobo Demonstration Completed Successfully!    ")
