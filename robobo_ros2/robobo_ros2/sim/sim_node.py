@@ -8,7 +8,6 @@ from robobo_ros2_interfaces.msg import RobotLocation
 from robobo_ros2_interfaces.srv import (
     ChangeRobotLocation,
     SetRobotLocation,
-    ResetScene,
     ResetSimulation,
 )
 
@@ -25,7 +24,6 @@ class SimNode(Node):
       - Topic:   /robobo/robot_<name>/sim/pose (geometry_msgs/msg/Pose)
       - Service: /robobo/robot_<name>/sim/change_robot_location (robobo_ros2_interfaces/srv/ChangeRobotLocation)
       - Service: /robobo/robot_<name>/sim/set_robot_location (robobo_ros2_interfaces/srv/SetRobotLocation)
-      - Service: /robobo/robot_<name>/sim/reset_scene (robobo_ros2_interfaces/srv/ResetScene)
       - Service: /robobo/robot_<name>/sim/reset_simulation (robobo_ros2_interfaces/srv/ResetSimulation)
     """
 
@@ -92,12 +90,6 @@ class SimNode(Node):
             SetRobotLocation,
             f'{self._namespace}/set_robot_location',
             self.set_robot_location_cb
-        )
-
-        self.create_service(
-            ResetScene,
-            f'{self._namespace}/reset_scene',
-            self.reset_scene_cb
         )
 
         self.create_service(
@@ -218,7 +210,7 @@ class SimNode(Node):
         """Service callback alias for change_robot_location."""
         return self.change_robot_location_cb(request, response)
 
-    def reset_scene_cb(self, request, response):
+    def reset_simulation_cb(self, request, response):
         """Service callback to reset simulation scene in RoboboSim."""
         try:
             self.sim.resetSimulation()
@@ -228,10 +220,6 @@ class SimNode(Node):
             self.get_logger().error(f'Failed to reset simulation: {e}')
             response.success = False
         return response
-
-    def reset_simulation_cb(self, request, response):
-        """Service callback alias for reset_scene."""
-        return self.reset_scene_cb(request, response)
 
     def destroy_node(self):
         """Clean up resources on node shutdown."""

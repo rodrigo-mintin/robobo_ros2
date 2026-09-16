@@ -6,7 +6,7 @@ Some virtual nodes written in python (rclpy) and ROS2 Jazzy to communicate with 
 
 - **ROB Base**: Sensors (IR distance/Range, battery, pan/tilt positions, wheel encoders/speed), actuators (LEDs, pan/tilt movement, wheel movement services/actions), standard ROS2 `cmd_vel` velocity control, `odom` odometry publisher, and TF transform broadcasting.
 - **Smartphone Modules**: Battery, IMU (orientation/acceleration), Brightness, Audio (sounds/notes), Speech (TTS), Noise and detected notes, Emotion display, Camera streaming (`Image` & `CameraInfo`) with camera controls, ArUco detection, QR detection, Color Blob detection, Object recognition, and Touch/Gesture detection (tap & fling).
-- **Simulation Module (RoboboSim)**: Robot location topic (`robot_location`, `location`, `pose`), service to change robot location (`change_robot_location`, `set_robot_location`), and service to reset the scene (`reset_scene`, `reset_simulation`) via [robobosim.py](https://github.com/mintforpeople/robobosim.py).
+- **Simulation Module (RoboboSim)**: Robot location topic (`robot_location`, `location`, `pose`), service to change robot location (`change_robot_location`, `set_robot_location`), and service to reset the simulation (`reset_simulation`) via [robobosim.py](https://github.com/mintforpeople/robobosim.py).
 
 ### How do I do this?
 

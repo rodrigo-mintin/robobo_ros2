@@ -157,9 +157,9 @@ def test_sim_node_init_and_services():
     )
     assert mock_resp.success is True
 
-    # Test reset_scene_cb
+    # Test reset_simulation_cb
     mock_resp_reset = MagicMock()
-    sim_node.reset_scene_cb(MagicMock(), mock_resp_reset)
+    sim_node.reset_simulation_cb(MagicMock(), mock_resp_reset)
     mock_sim.resetSimulation.assert_called_once()
     assert mock_resp_reset.success is True
 
