@@ -6,10 +6,11 @@ Some virtual nodes written in python (rclpy) and ROS2 Jazzy to communicate with 
 
 - **ROB Base**: Sensors (IR distance/Range, battery, pan/tilt positions, wheel encoders/speed), actuators (LEDs, pan/tilt movement, wheel movement services/actions), standard ROS2 `cmd_vel` velocity control, `odom` odometry publisher, and TF transform broadcasting.
 - **Smartphone Modules**: Battery, IMU (orientation/acceleration), Brightness, Audio (sounds/notes), Speech (TTS), Noise and detected notes, Emotion display, Camera streaming (`Image` & `CameraInfo`) with camera controls, ArUco detection, QR detection, Color Blob detection, Object recognition, and Touch/Gesture detection (tap & fling).
+- **Simulation Module (RoboboSim)**: Robot location topic (`robot_location`, `location`, `pose`), service to change robot location (`change_robot_location`, `set_robot_location`), and service to reset the scene (`reset_scene`, `reset_simulation`) via [robobosim.py](https://github.com/mintforpeople/robobosim.py).
 
 ### How do I do this?
 
-Remember to have `robobopy` and `robobopy_videostream` installed in your python environment:
+Remember to have `robobopy`, `robobopy_videostream`, and `robobosim` installed in your python environment:
 ```bash
 pip install -r robobo_ros2/requirements.txt
 ```
@@ -17,6 +18,7 @@ Or manually:
 ```bash
 pip install robobopy
 pip install robobopy_videostream
+pip install robobosim
 ```
 
 Build the workspace (builds both `robobo_ros2_interfaces` and `robobo_ros2`) and source the setup script:
@@ -84,6 +86,7 @@ robobo_container:
       - blob
       - object_recognition
       - touch
+      - sim
 ```
 
 | Parameter | Description |

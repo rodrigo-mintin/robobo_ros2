@@ -23,6 +23,8 @@ from robobo_ros2.smartphone.vision.object_recognition_node import ObjectRecognit
 
 from robobo_ros2.smartphone.touch_and_gesture_node import TouchAndGestureNode
 
+from robobo_ros2.sim.sim_node import SimNode
+
 
 from rcl_interfaces.msg import ParameterDescriptor
 
@@ -39,11 +41,11 @@ class RoboboContainer(Node):
         self.declare_parameter('ip', '127.0.0.1')
         self.declare_parameter('robot_id', 0)
 
-        # Smartphone modules
+        # Smartphone & simulation modules
         self.declare_parameter('modules', [
             'imu', 'brightness', 'audio', 'speech',
             'camera', 'blob', 'qr', 'aruco', 'emotion',
-            'object_recognition', 'noise', 'touch'])
+            'object_recognition', 'noise', 'touch', 'sim'])
 
         self.robot_name = str(self.get_parameter('robot_name').value)
         self.ip = self.get_parameter('ip').value
@@ -107,6 +109,13 @@ class RoboboContainer(Node):
 
         if 'touch' in self.modules or 'gesture' in self.modules:
             self.nodes.append(TouchAndGestureNode(self.rob, self.robot_name))
+
+        if 'sim' in self.modules:
+            try:
+                self.sim_node = SimNode(self.robot_name, self.robot_id, self.ip)
+                self.nodes.append(self.sim_node)
+            except Exception as e:
+                self.get_logger().error(f'Failed to initialize SimNode: {e}')
 
 
 def main(args=None):

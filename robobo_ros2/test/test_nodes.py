@@ -13,6 +13,7 @@ from robobo_ros2.smartphone.battery_node import BatteryNode
 from robobo_ros2.smartphone.emotion_node import EmotionNode
 from robobo_ros2.smartphone.vision.object_recognition_node import ObjectRecognitionNode
 from robobo_ros2.smartphone.touch_and_gesture_node import TouchAndGestureNode
+from robobo_ros2.sim.sim_node import SimNode
 
 
 def setup_module():
@@ -127,3 +128,46 @@ def test_camera_node_init():
     assert cam_node.camera_info_pub.topic_name == '/robobo/robot_test_bot/smartphone/camera/camera_info'
 
     cam_node.destroy_node()
+
+
+def test_sim_node_init_and_services():
+    mock_sim = MagicMock()
+    sim_node = SimNode('test_bot', 0, '127.0.0.1', sim=mock_sim)
+
+    assert sim_node._namespace == '/robobo/robot_test_bot/sim'
+    assert sim_node.robot_location_pub.topic_name == '/robobo/robot_test_bot/sim/robot_location'
+    assert sim_node.location_pub.topic_name == '/robobo/robot_test_bot/sim/location'
+    assert sim_node.pose_pub.topic_name == '/robobo/robot_test_bot/sim/pose'
+
+    # Test change_robot_location_cb
+    mock_req = MagicMock()
+    mock_req.position.x = 10.0
+    mock_req.position.y = 20.0
+    mock_req.position.z = 30.0
+    mock_req.rotation.x = 0.0
+    mock_req.rotation.y = 90.0
+    mock_req.rotation.z = 0.0
+
+    mock_resp = MagicMock()
+    sim_node.change_robot_location_cb(mock_req, mock_resp)
+    mock_sim.setRobotLocation.assert_called_with(
+        0,
+        position={'x': 10.0, 'y': 20.0, 'z': 30.0},
+        rotation={'x': 0.0, 'y': 90.0, 'z': 0.0}
+    )
+    assert mock_resp.success is True
+
+    # Test reset_scene_cb
+    mock_resp_reset = MagicMock()
+    sim_node.reset_scene_cb(MagicMock(), mock_resp_reset)
+    mock_sim.resetSimulation.assert_called_once()
+    assert mock_resp_reset.success is True
+
+    # Test read_and_publish_location
+    mock_sim.getRobotLocation.return_value = {
+        'position': {'x': 1.0, 'y': 2.0, 'z': 3.0},
+        'rotation': {'x': 0.0, 'y': 0.0, 'z': 0.0}
+    }
+    sim_node.read_and_publish_location()
+
+    sim_node.destroy_node()

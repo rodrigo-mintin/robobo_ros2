@@ -28,7 +28,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml') + glob('config/*.yml')),
     ],
 
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'robobosim'],
 
     zip_safe=True,
 
@@ -51,6 +51,8 @@ setup(
             'robobo_container.py = robobo_ros2.robobo_container:main',
             'sample_demo = robobo_ros2.sample_demo:main',
             'sample_demo.py = robobo_ros2.sample_demo:main',
+            'sim_node = robobo_ros2.sim.sim_node:main',
+            'sim_node.py = robobo_ros2.sim.sim_node:main',
         ],
     },
 )
