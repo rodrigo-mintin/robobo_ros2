@@ -96,6 +96,51 @@ robobo_container:
 | `robot_id` | Robot index for multi-robot simulation in RoboboSim (default: `0`). |
 | `modules` | List of smartphone modules to load. |
 | `cmd_vel_timeout` | *(Optional)* Safety watchdog timeout in seconds for `cmd_vel` velocity commands (default: `0.5`). |
+| `frequency` | *(Optional)* Location polling frequency in Hz for the simulation node (default: `10.0`). |
+
+### Simulation Module (RoboboSim)
+
+When the `sim` module is active (enabled by default in `modules`), the container launches a `SimNode` that communicates with a running [RoboboSim](https://github.com/mintforpeople/robobosim.py) Unity instance over WebSocket (default port `50505`).
+
+All simulation topics and services are namespaced under `/robobo/robot_<name>/sim/`.
+
+#### Topics
+
+| Topic | Message Type | Description |
+| --- | --- | --- |
+| `/robobo/robot_<name>/sim/robot_location` | [`robobo_ros2_interfaces/msg/RobotLocation`](robobo_ros2_interfaces/msg/RobotLocation.msg) | Global coordinates (robot ID, position `(x, y, z)` and rotation `(pitch, yaw, roll)` in degrees). |
+| `/robobo/robot_<name>/sim/location` | [`robobo_ros2_interfaces/msg/RobotLocation`](robobo_ros2_interfaces/msg/RobotLocation.msg) | Alias of `robot_location`. |
+| `/robobo/robot_<name>/sim/pose` | [`geometry_msgs/msg/Pose`](https://docs.ros2.org/latest/api/geometry_msgs/msg/Pose.html) | Standard ROS 2 pose message with position and orientation quaternion (converted from Euler degrees). |
+
+#### Services
+
+| Service | Service Type | Description |
+| --- | --- | --- |
+| `/robobo/robot_<name>/sim/change_robot_location` | [`robobo_ros2_interfaces/srv/ChangeRobotLocation`](robobo_ros2_interfaces/srv/ChangeRobotLocation.srv) | Repositions and rotates the robot in RoboboSim world coordinates. |
+| `/robobo/robot_<name>/sim/set_robot_location` | [`robobo_ros2_interfaces/srv/SetRobotLocation`](robobo_ros2_interfaces/srv/SetRobotLocation.srv) | Alias for `change_robot_location`. |
+| `/robobo/robot_<name>/sim/reset_simulation` | [`robobo_ros2_interfaces/srv/ResetSimulation`](robobo_ros2_interfaces/srv/ResetSimulation.srv) | Resets the simulation scene in RoboboSim to its initial state. |
+
+#### CLI Usage Examples
+
+**Echo robot location:**
+```bash
+ros2 topic echo /robobo/robot_0/sim/robot_location
+```
+
+**Echo standard Pose:**
+```bash
+ros2 topic echo /robobo/robot_0/sim/pose
+```
+
+**Change robot location and rotation:**
+```bash
+ros2 service call /robobo/robot_0/sim/change_robot_location robobo_ros2_interfaces/srv/ChangeRobotLocation "{position: {x: 1.0, y: 0.0, z: 2.0}, rotation: {x: 0.0, y: 90.0, z: 0.0}}"
+```
+
+**Reset simulation:**
+```bash
+ros2 service call /robobo/robot_0/sim/reset_simulation robobo_ros2_interfaces/srv/ResetSimulation "{}"
+```
 
 
 ### Running the demo
