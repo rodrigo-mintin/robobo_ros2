@@ -28,7 +28,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml') + glob('config/*.yml')),
     ],
 
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'robobosim'],
 
     zip_safe=True,
 

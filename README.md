@@ -6,10 +6,11 @@ Some virtual nodes written in python (rclpy) and ROS2 Jazzy to communicate with 
 
 - **ROB Base**: Sensors (IR distance/Range, battery, pan/tilt positions, wheel encoders/speed), actuators (LEDs, pan/tilt movement, wheel movement services/actions), standard ROS2 `cmd_vel` velocity control, `odom` odometry publisher, and TF transform broadcasting.
 - **Smartphone Modules**: Battery, IMU (orientation/acceleration), Brightness, Audio (sounds/notes), Speech (TTS), Noise and detected notes, Emotion display, Camera streaming (`Image` & `CameraInfo`) with camera controls, ArUco detection, QR detection, Color Blob detection, Object recognition, and Touch/Gesture detection (tap & fling).
+- **Simulation Module (RoboboSim)**: Robot location topic (`robot_location`, `location`, `pose`), service to change robot location (`change_robot_location`, `set_robot_location`), and service to reset the simulation (`reset_simulation`) via [robobosim.py](https://github.com/mintforpeople/robobosim.py).
 
 ### How do I do this?
 
-Remember to have `robobopy` and `robobopy_videostream` installed in your python environment:
+Remember to have `robobopy`, `robobopy_videostream`, and `robobosim` installed in your python environment:
 ```bash
 pip install -r robobo_ros2/requirements.txt
 ```
@@ -17,6 +18,7 @@ Or manually:
 ```bash
 pip install robobopy
 pip install robobopy_videostream
+pip install robobosim
 ```
 
 Build the workspace (builds both `robobo_ros2_interfaces` and `robobo_ros2`) and source the setup script:
@@ -84,6 +86,7 @@ robobo_container:
       - blob
       - object_recognition
       - touch
+      - sim
 ```
 
 | Parameter | Description |
@@ -93,20 +96,88 @@ robobo_container:
 | `robot_id` | Robot index for multi-robot simulation in RoboboSim (default: `0`). |
 | `modules` | List of smartphone modules to load. |
 | `cmd_vel_timeout` | *(Optional)* Safety watchdog timeout in seconds for `cmd_vel` velocity commands (default: `0.5`). |
+| `frequency` | *(Optional)* Location polling frequency in Hz for the simulation node (default: `10.0`). |
+
+### Simulation Module (RoboboSim)
+
+When the `sim` module is active (enabled by default in `modules`), the container launches a `SimNode` that communicates with a running [RoboboSim](https://github.com/mintforpeople/robobosim.py) Unity instance over WebSocket (default port `50505`).
+
+All simulation topics and services are namespaced under `/robobo/robot_<name>/sim/`.
+
+#### Topics
+
+| Topic | Message Type | Description |
+| --- | --- | --- |
+| `/robobo/robot_<name>/sim/robot_location` | [`robobo_ros2_interfaces/msg/RobotLocation`](robobo_ros2_interfaces/msg/RobotLocation.msg) | Global coordinates (robot ID, position `(x, y, z)` and rotation `(pitch, yaw, roll)` in degrees). |
+| `/robobo/robot_<name>/sim/location` | [`robobo_ros2_interfaces/msg/RobotLocation`](robobo_ros2_interfaces/msg/RobotLocation.msg) | Alias of `robot_location`. |
+| `/robobo/robot_<name>/sim/pose` | [`geometry_msgs/msg/Pose`](https://docs.ros2.org/latest/api/geometry_msgs/msg/Pose.html) | Standard ROS 2 pose message with position and orientation quaternion (converted from Euler degrees). |
+
+#### Services
+
+| Service | Service Type | Description |
+| --- | --- | --- |
+| `/robobo/robot_<name>/sim/change_robot_location` | [`robobo_ros2_interfaces/srv/ChangeRobotLocation`](robobo_ros2_interfaces/srv/ChangeRobotLocation.srv) | Repositions and rotates the robot in RoboboSim world coordinates. |
+| `/robobo/robot_<name>/sim/set_robot_location` | [`robobo_ros2_interfaces/srv/SetRobotLocation`](robobo_ros2_interfaces/srv/SetRobotLocation.srv) | Alias for `change_robot_location`. |
+| `/robobo/robot_<name>/sim/reset_simulation` | [`robobo_ros2_interfaces/srv/ResetSimulation`](robobo_ros2_interfaces/srv/ResetSimulation.srv) | Resets the simulation scene in RoboboSim to its initial state. |
+
+#### CLI Usage Examples
+
+**Echo robot location:**
+```bash
+ros2 topic echo /robobo/robot_0/sim/robot_location
+```
+
+**Echo standard Pose:**
+```bash
+ros2 topic echo /robobo/robot_0/sim/pose
+```
+
+**Change robot location and rotation:**
+```bash
+ros2 service call /robobo/robot_0/sim/change_robot_location robobo_ros2_interfaces/srv/ChangeRobotLocation "{position: {x: 1.0, y: 0.0, z: 2.0}, rotation: {x: 0.0, y: 90.0, z: 0.0}}"
+```
+
+**Reset simulation:**
+```bash
+ros2 service call /robobo/robot_0/sim/reset_simulation robobo_ros2_interfaces/srv/ResetSimulation "{}"
+```
 
 
 ### Running the demo
 
-You can run a simple demo provided with the repo to check that everything is working correctly and see how to program with the Robobo ROS 2 nodes (LEDs, wheels, pan/tilt).
+You can run the standalone demo script provided with the repo to test robot functionality (LEDs, wheel movements, pan/tilt motors).
 
-#### Option A: Launch both container and demo together
-This automatically launches `robobo_container` and starts the `sample_demo` test sequence:
+The demo is a standalone client script that communicates with an already running `robobo_container` virtual node.
+
+#### Step 1: Launch the Robobo container
+
+In your first terminal, launch the container node (connecting to your real robot or simulator):
+
 ```bash
-ros2 launch robobo_ros2 sample_demo.launch.py ip:=ROBOBO_IP robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
+# Using launch file (defaults to IP 127.0.0.1, robot_name '0'):
+ros2 launch robobo_ros2 robobo.launch.py
+
+# Or with custom parameters:
+ros2 launch robobo_ros2 robobo.launch.py ip:=ROBOBO_IP robot_name:=ROBOT_NAME robot_id:=ROBOT_ID
+
+# Or directly with ros2 run:
+ros2 run robobo_ros2 robobo_container --ros-args -p ip:=ROBOBO_IP -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
 ```
 
-#### Option B: Run the demo against an already running container
-If `robobo_container` is already running in another terminal:
+#### Step 2: Run the demo script
+
+While the virtual node is running, open a second terminal (sourced) and run the demo:
+
 ```bash
-ros2 run robobo_ros2 sample_demo --ros-args -p ip:=ROBOBO_IP -p robot_name:=ROBOT_NAME -p robot_id:=ROBOT_ID
+# Run with default robot_name '0':
+ros2 run robobo_ros2 sample_demo
+
+# Run with a specific robot name or timeout:
+ros2 run robobo_ros2 sample_demo --robot-name ROBOT_NAME --timeout 15
+
+# Or execute directly with python:
+python src/robobo_ros2/robobo_ros2/sample_demo.py --robot-name ROBOT_NAME
+
+# Show all available options:
+ros2 run robobo_ros2 sample_demo --help
 ```

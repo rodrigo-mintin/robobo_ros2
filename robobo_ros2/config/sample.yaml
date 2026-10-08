@@ -17,4 +17,5 @@ robobo_container:
       - blob
       - object_recognition
       - touch
+      - sim
 

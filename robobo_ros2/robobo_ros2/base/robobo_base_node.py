@@ -45,8 +45,8 @@ class RoboboBaseNode(Node):
         self._namespace = f'/robobo/robot_{self.robot_name}/base'
 
         # --- Kinematic & Odometry Parameters ---
-        self.declare_parameter('wheel_radius', 0.0275)
-        self.declare_parameter('track_width', 0.10)
+        self.declare_parameter('wheel_radius', 0.032)
+        self.declare_parameter('track_width', 0.1435)
         self.declare_parameter('max_wheel_speed', 100.0)
         self.declare_parameter('max_wheel_rad_s', 10.0)
         self.declare_parameter('cmd_vel_timeout', 0.5)
