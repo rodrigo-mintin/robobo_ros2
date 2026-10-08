@@ -51,6 +51,8 @@ setup(
             'robobo_container.py = robobo_ros2.robobo_container:main',
             'sample_demo = robobo_ros2.sample_demo:main',
             'sample_demo.py = robobo_ros2.sample_demo:main',
+            'robobo_sim_node = robobo_ros2.sim.robobo_sim_node:main',
+            'robobo_sim_node.py = robobo_ros2.sim.robobo_sim_node:main',
         ],
     },
 )
