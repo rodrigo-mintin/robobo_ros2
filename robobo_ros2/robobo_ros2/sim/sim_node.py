@@ -184,11 +184,6 @@ class SimNode(Node):
 
         try:
             self.sim.onNewObjectLocation(self._on_sim_object_location_cb)
-            if hasattr(self.sim, 'rem') and hasattr(self.sim.rem, 'processors'):
-                obj_proc = self.sim.rem.processors.get('OBJ-LOCATION')
-                if obj_proc and hasattr(obj_proc, 'callbacks'):
-                    obj_proc.callbacks['object_location'] = self._on_sim_object_location_cb
-                    obj_proc.callbacks['object-location'] = self._on_sim_object_location_cb
         except Exception as e:
             self.get_logger().warn(f'Failed to register onNewObjectLocation callback: {e}')
 
@@ -202,11 +197,13 @@ class SimNode(Node):
 
     def _on_sim_location_cb(self):
         """Callback triggered by RoboboSim WebSocket upon receiving SIM-LOCATION."""
-        self.read_and_publish_location()
+        if self.frequency <= 0.0:
+            self.read_and_publish_location()
 
     def _on_sim_object_location_cb(self):
         """Callback triggered by RoboboSim WebSocket upon receiving SIM-OBJECT-LOCATION."""
-        self.read_and_publish_objects()
+        if self.frequency <= 0.0:
+            self.read_and_publish_objects()
 
     def _poll_location(self):
         """Periodic timer polling fallback to guarantee fresh location and object publication."""
@@ -304,8 +301,8 @@ class SimNode(Node):
                 return
 
             arr = SimObjectArray()
-            for obj_id, data in state_objs.items():
-                if 'position' in data and 'rotation' in data:
+            for obj_id, data in list(state_objs.items()):
+                if isinstance(data, dict) and 'position' in data and 'rotation' in data:
                     obj_msg = self._build_sim_object_msg(obj_id, data)
                     arr.objects.append(obj_msg)
 

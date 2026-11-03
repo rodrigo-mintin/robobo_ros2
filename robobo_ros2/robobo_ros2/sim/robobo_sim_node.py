@@ -156,18 +156,13 @@ class RoboboSimNode(Node):
         """Register simulation callbacks and apply compatibility patches."""
         try:
             self.sim.onNewObjectLocation(self._on_sim_object_location)
-            # Patch known typo/key mismatch in robobosim remotelib vs ObjectLocationProcessor
-            if hasattr(self.sim, 'rem') and hasattr(self.sim.rem, 'processors'):
-                obj_proc = self.sim.rem.processors.get('OBJ-LOCATION')
-                if obj_proc and hasattr(obj_proc, 'callbacks'):
-                    obj_proc.callbacks['object_location'] = self._on_sim_object_location
-                    obj_proc.callbacks['object-location'] = self._on_sim_object_location
         except Exception as e:
             self.get_logger().warn(f"Could not hook object location callback: {e}")
 
     def _on_sim_object_location(self):
         """Called when a new object location packet is received from RoboboSim."""
-        self._sync_objects_from_sim()
+        if self.publish_frequency <= 0:
+            self._sync_objects_from_sim()
 
     def _sync_objects_from_sim(self):
         """Read latest object locations from RoboboSim state and broadcast."""
@@ -177,8 +172,8 @@ class RoboboSimNode(Node):
         with self.lock:
             try:
                 state_objs = getattr(self.sim.rem.state, 'object_locations', {})
-                for object_id, data in state_objs.items():
-                    if 'position' in data and 'rotation' in data:
+                for object_id, data in list(state_objs.items()):
+                    if isinstance(data, dict) and 'position' in data and 'rotation' in data:
                         self.objects_data[str(object_id)] = {
                             'position': dict(data['position']),
                             'rotation': dict(data['rotation'])
