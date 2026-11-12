@@ -23,6 +23,8 @@ class CameraNode(Node):
 
         self.declare_parameter('camera_frame_id', 'camera_optical_frame')
         self.camera_frame_id = str(self.get_parameter('camera_frame_id').value)
+        self.declare_parameter('fps', 30.0)
+        self.fps = float(self.get_parameter('fps').value)
 
         self.publisher = self.create_publisher(
             Image,
@@ -120,6 +122,9 @@ class CameraNode(Node):
             self.video.connect()
             self.get_logger().info('Video stream connected')
 
+            min_interval = (1.0 / self.fps) if self.fps > 0 else 0.033
+            last_pub_time = 0.0
+
             while rclpy.ok() and self.running:
                 try:
                     frame = self.video.getImage()
@@ -132,6 +137,11 @@ class CameraNode(Node):
                 if frame is None:
                     time.sleep(0.01)
                     continue
+
+                now_time = time.time()
+                elapsed = now_time - last_pub_time
+                if elapsed < min_interval:
+                    time.sleep(min_interval - elapsed)
 
                 stamp = self.get_clock().now().to_msg()
                 h, w = frame.shape[:2]
@@ -165,7 +175,7 @@ class CameraNode(Node):
 
                 self.publisher.publish(msg)
                 self.camera_info_pub.publish(info_msg)
-                time.sleep(0.01)
+                last_pub_time = time.time()
 
         except Exception as e:
             if rclpy.ok():

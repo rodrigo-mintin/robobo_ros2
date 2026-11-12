@@ -153,11 +153,12 @@ class RoboboSimNode(Node):
         )
 
     def _register_callbacks(self):
-        """Register simulation callbacks and apply compatibility patches."""
-        try:
-            self.sim.onNewObjectLocation(self._on_sim_object_location)
-        except Exception as e:
-            self.get_logger().warn(f"Could not hook object location callback: {e}")
+        """Register simulation callbacks when in push mode (publish_frequency <= 0)."""
+        if self.publish_frequency <= 0:
+            try:
+                self.sim.onNewObjectLocation(self._on_sim_object_location)
+            except Exception as e:
+                self.get_logger().warn(f"Could not hook object location callback: {e}")
 
     def _on_sim_object_location(self):
         """Called when a new object location packet is received from RoboboSim."""

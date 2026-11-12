@@ -177,15 +177,16 @@ class SimNode(Node):
         # -------------------------
         # Location Updates
         # -------------------------
-        try:
-            self.sim.onNewLocation(self._on_sim_location_cb)
-        except Exception as e:
-            self.get_logger().warn(f'Failed to register RoboboSim onNewLocation callback: {e}')
+        if self.frequency <= 0.0:
+            try:
+                self.sim.onNewLocation(self._on_sim_location_cb)
+            except Exception as e:
+                self.get_logger().warn(f'Failed to register RoboboSim onNewLocation callback: {e}')
 
-        try:
-            self.sim.onNewObjectLocation(self._on_sim_object_location_cb)
-        except Exception as e:
-            self.get_logger().warn(f'Failed to register onNewObjectLocation callback: {e}')
+            try:
+                self.sim.onNewObjectLocation(self._on_sim_object_location_cb)
+            except Exception as e:
+                self.get_logger().warn(f'Failed to register onNewObjectLocation callback: {e}')
 
         if self.frequency > 0.0:
             timer_period = 1.0 / self.frequency
