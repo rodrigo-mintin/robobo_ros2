@@ -12,7 +12,7 @@ from robobo_ros2_interfaces.srv import SetCamera, StartCamera, StopCamera
 
 class CameraNode(Node):
 
-    def __init__(self, rob, robot_name, ip):
+    def __init__(self, rob, robot_name, ip, robot_id=0):
         super().__init__('camera_node')
 
         self.rob = rob
@@ -23,6 +23,8 @@ class CameraNode(Node):
 
         self.declare_parameter('camera_frame_id', 'camera_optical_frame')
         self.camera_frame_id = str(self.get_parameter('camera_frame_id').value)
+        self.declare_parameter('robot_id', int(robot_id))
+        self.robot_id = int(self.get_parameter('robot_id').value)
         self.declare_parameter('fps', 30.0)
         self.fps = float(self.get_parameter('fps').value)
 
@@ -57,7 +59,7 @@ class CameraNode(Node):
             self.stop_camera_cb
         )
 
-        self.video = RoboboVideo(self.ip)
+        self.video = RoboboVideo(self.ip, robot_id=self.robot_id)
 
         self.running = False
         self.thread = None

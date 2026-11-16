@@ -64,6 +64,24 @@ ros2 launch robobo_ros2 robobo.launch.py ip:=IP_ROBOT robot_name:=ROBOT_NAME rob
 ros2 launch robobo_ros2 robobo.launch.py params_file:=/path/to/params.yaml
 ```
 
+#### Launching a Multi-Robot or Headless Pool
+
+Use `robobo_pool.launch.py` to spawn $N$ robot container nodes in parallel using standard sequential `robot_id` mapping (`40404 + i*10` for robot, `40405 + i*10` for camera):
+
+```bash
+# Launch 4 nodes in pure headless mode (robot_id 0..3):
+ros2 launch robobo_ros2 robobo_pool.launch.py num_robots:=4
+
+# Launch 4 nodes with off-screen GPU camera streaming enabled:
+ros2 launch robobo_ros2 robobo_pool.launch.py num_robots:=4 camera_stream:=true
+
+# Launch 2 nodes in standard GUI mode:
+ros2 launch robobo_ros2 robobo_pool.launch.py num_robots:=2 headless:=false
+```
+
+> **Headless Mode Optimization:** In pure headless mode (`headless:=true, camera_stream:=false`), multimedia modules (`audio`, `speech`, `noise`, `emotion`) and video streaming (`camera`) are automatically excluded, while **simulated perception modules** (`aruco`, `blob`, `qr`, `object_recognition`, `imu`, `sim`) remain active and operate at full speed directly from simulation telemetry.
+```
+
 If no modules are specified, all of them will be loaded, so the barebones parameters are the IP for the real robot and essentially no parameters for simulator.
 
 ```yaml

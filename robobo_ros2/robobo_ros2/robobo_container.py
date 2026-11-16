@@ -49,7 +49,7 @@ class RoboboContainer(Node):
 
         self.robot_name = str(self.get_parameter('robot_name').value)
         self.ip = self.get_parameter('ip').value
-        self.robot_id = self.get_parameter('robot_id').value
+        self.robot_id = int(self.get_parameter('robot_id').value)
         self.modules = self.get_parameter('modules').value
 
         # --- Namespace ---
@@ -59,7 +59,7 @@ class RoboboContainer(Node):
         # -------------------------
         # Create Robobo connection
         # -------------------------
-        self.get_logger().info('Connecting to Robobo...')
+        self.get_logger().info(f'Connecting to Robobo at {self.ip} (robot_id={self.robot_id})...')
         self.rob = Robobo(self.ip, robot_id=self.robot_id)
         self.rob.connect()
 
@@ -102,7 +102,7 @@ class RoboboContainer(Node):
             self.nodes.append(ColorBlobNode(self.rob, self.robot_name))
         
         if 'camera' in self.modules:
-            self.nodes.append(CameraNode(self.rob, self.robot_name, self.ip))
+            self.nodes.append(CameraNode(self.rob, self.robot_name, self.ip, robot_id=self.robot_id))
 
         if 'object_recognition' in self.modules or 'object' in self.modules:
             self.nodes.append(ObjectRecognitionNode(self.rob, self.robot_name))
